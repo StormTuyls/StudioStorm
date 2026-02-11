@@ -1,6 +1,15 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Header() {
+  const { isAuthenticated, isClient, isAdmin, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
   return (
     <header className="bg-white border-b border-gray-200">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -9,7 +18,7 @@ export default function Header() {
             STUDIO STORM
           </Link>
           
-          <div className="flex space-x-8">
+          <div className="flex items-center space-x-8">
             <Link to="/" className="text-sm text-gray-700 hover:text-gray-900 transition">
               Home
             </Link>
@@ -25,6 +34,51 @@ export default function Header() {
             <Link to="/contact" className="text-sm text-gray-700 hover:text-gray-900 transition">
               Contact
             </Link>
+            
+            {/* Auth Section */}
+            <div className="flex items-center space-x-4 ml-4 pl-4 border-l border-gray-200">
+              {isAuthenticated ? (
+                <>
+                  {isAdmin && (
+                    <Link 
+                      to="/admin" 
+                      className="text-sm font-medium text-purple-600 hover:text-purple-700 transition"
+                    >
+                      Admin Dashboard
+                    </Link>
+                  )}
+                  {isClient && (
+                    <Link 
+                      to="/client/galleries" 
+                      className="text-sm font-medium text-blue-600 hover:text-blue-700 transition"
+                    >
+                      Mijn Galerijen
+                    </Link>
+                  )}
+                  <button
+                    onClick={handleLogout}
+                    className="text-sm text-gray-600 hover:text-gray-900 transition"
+                  >
+                    Uitloggen
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link 
+                    to="/client/login" 
+                    className="text-sm font-medium text-blue-600 hover:text-blue-700 transition"
+                  >
+                    Client Login
+                  </Link>
+                  <Link 
+                    to="/admin/login" 
+                    className="text-sm font-medium text-purple-600 hover:text-purple-700 transition"
+                  >
+                    Admin
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </nav>

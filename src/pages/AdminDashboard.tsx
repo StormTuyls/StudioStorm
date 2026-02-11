@@ -4,8 +4,9 @@ import { logout, getCurrentUser } from '../api';
 import PhotosManager from '../components/admin/PhotosManager';
 import AlbumsManager from '../components/admin/AlbumsManager';
 import ClientGalleriesManager from '../components/admin/ClientGalleriesManager';
+import UsersManager from '../components/admin/UsersManager';
 
-type Tab = 'photos' | 'albums' | 'galleries';
+type Tab = 'photos' | 'albums' | 'galleries' | 'users';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('photos');
@@ -22,7 +23,10 @@ export default function AdminDashboard() {
   }, [navigate]);
 
   useEffect(() => {
-    void loadUser();
+    const init = async () => {
+      await loadUser();
+    };
+    void init();
   }, [loadUser]);
 
   const handleLogout = () => {
@@ -92,6 +96,16 @@ export default function AdminDashboard() {
             >
               Client Galleries
             </button>
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`${
+                activeTab === 'users'
+                  ? 'border-gray-900 text-gray-900'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              Users
+            </button>
           </nav>
         </div>
 
@@ -100,6 +114,7 @@ export default function AdminDashboard() {
           {activeTab === 'photos' && <PhotosManager />}
           {activeTab === 'albums' && <AlbumsManager />}
           {activeTab === 'galleries' && <ClientGalleriesManager />}
+          {activeTab === 'users' && <UsersManager />}
         </div>
       </div>
     </div>

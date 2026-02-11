@@ -3,12 +3,13 @@ import cors from "cors";
 import { MongoClient, ObjectId } from "mongodb";
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import path from "path";
 import { fileURLToPath } from "url";
 import { v4 as uuidv4 } from "uuid";
-import { authenticateToken, generateToken } from "./middleware/auth.js";
+import { authenticateToken, requireAdmin, generateToken } from "./middleware/auth.js";
 import { upload } from "./middleware/upload.js";
 import { extractExifData } from "./utils/exif.js";
 
@@ -257,6 +258,142 @@ app.patch("/api/photos/:id/like", likeLimiter, async (req, res) => {
 
 // ==================== AUTHENTICATION ====================
 
+// ==================== AUTH ROUTES ====================
+
+// POST register new client
+// Admin-only user creation with role support
+app.post("/api/admin/users", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { username, email, password, firstName, lastName, role } = req.body;
+
+    // Validation
+    if (!username || !email || !password) {
+      return res
+        .status(400)
+        .json({ error: "Username, email, and password are required" });
+    }
+
+    if (password.length < 8) {
+      return res
+        .status(400)
+        .json({ error: "Password must be at least 8 characters" });
+    }
+
+    // Validate role
+    if (role && !['client', 'admin'].includes(role)) {
+      return res.status(400).json({ error: "Invalid role" });
+    }
+
+    // Check if user already exists
+    const existingUser = await db
+      .collection("users")
+      .findOne({ $or: [{ username }, { email }] });
+
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ error: "Username or email already exists" });
+    }
+
+    // Get next user ID
+    const lastUser = await db
+      .collection("users")
+      .findOne({}, { sort: { id: -1 } });
+    const nextId = lastUser ? lastUser.id + 1 : 1;
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const newUser = {
+      id: nextId,
+      username,
+      email,
+      firstName: firstName || "",
+      lastName: lastName || "",
+      passwordHash,
+      role: role || "client",
+      createdAt: new Date(),
+      lastLogin: null,
+    };
+
+    await db.collection("users").insertOne(newUser);
+
+    const { passwordHash: _, ...userWithoutPassword } = newUser;
+    res.status(201).json(userWithoutPassword);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/auth/register", async (req, res) => {
+  try {
+    const { username, email, password, firstName, lastName } = req.body;
+
+    // Validation
+    if (!username || !email || !password) {
+      return res
+        .status(400)
+        .json({ error: "Username, email, and password are required" });
+    }
+
+    if (password.length < 8) {
+      return res
+        .status(400)
+        .json({ error: "Password must be at least 8 characters" });
+    }
+
+    // Check if user already exists
+    const existingUser = await db
+      .collection("users")
+      .findOne({ $or: [{ username }, { email }] });
+
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ error: "Username or email already exists" });
+    }
+
+    // Get next user ID
+    const lastUser = await db
+      .collection("users")
+      .findOne({}, { sort: { id: -1 } });
+    const nextId = lastUser ? lastUser.id + 1 : 1;
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const newUser = {
+      id: nextId,
+      username,
+      email,
+      firstName: firstName || "",
+      lastName: lastName || "",
+      passwordHash,
+      role: "client",
+      createdAt: new Date(),
+      lastLogin: null,
+    };
+
+    await db.collection("users").insertOne(newUser);
+
+    const token = generateToken(newUser);
+
+    res.status(201).json({
+      token,
+      user: {
+        id: newUser.id,
+        username: newUser.username,
+        email: newUser.email,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        role: newUser.role,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // POST login
 app.post("/api/auth/login", async (req, res) => {
   try {
@@ -274,6 +411,11 @@ app.post("/api/auth/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
+    // Update last login
+    await db
+      .collection("users")
+      .updateOne({ id: user.id }, { $set: { lastLogin: new Date() } });
+
     const token = generateToken(user);
 
     res.json({
@@ -281,6 +423,9 @@ app.post("/api/auth/login", async (req, res) => {
       user: {
         id: user.id,
         username: user.username,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
         role: user.role,
       },
     });
@@ -295,7 +440,129 @@ app.get("/api/auth/me", authenticateToken, async (req, res) => {
     const user = await db
       .collection("users")
       .findOne({ id: req.user.id }, { projection: { passwordHash: 0 } });
+    
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    
     res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET user's assigned galleries (client)
+app.get("/api/my-galleries", authenticateToken, async (req, res) => {
+  try {
+    const galleries = await db
+      .collection("clientGalleries")
+      .find({ userId: req.user.id })
+      .sort({ createdAt: -1 })
+      .toArray();
+    res.json(galleries);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== USER MANAGEMENT ====================
+
+// GET all users (admin only)
+app.get("/api/admin/users", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const users = await db
+      .collection("users")
+      .find({}, { projection: { passwordHash: 0 } })
+      .toArray();
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET user by ID
+app.get("/api/users/:id", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .collection("users")
+      .findOne(
+        { id: Number(req.params.id) },
+        { projection: { passwordHash: 0 } },
+      );
+    
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PATCH update user
+app.patch("/api/users/:id", authenticateToken, async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+    const { firstName, lastName, email, role } = req.body;
+
+    // Users can only update their own profile, unless they're admin
+    const requestingUser = await db
+      .collection("users")
+      .findOne({ id: req.user.id });
+    
+    if (requestingUser.role !== "admin" && req.user.id !== userId) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    // Only admins can change roles
+    if (role !== undefined && requestingUser.role !== "admin") {
+      return res.status(403).json({ error: "Only admins can change user roles" });
+    }
+
+    const updateData = {};
+    if (firstName !== undefined) updateData.firstName = firstName;
+    if (lastName !== undefined) updateData.lastName = lastName;
+    if (email !== undefined) updateData.email = email;
+    if (role !== undefined) updateData.role = role;
+
+    const result = await db
+      .collection("users")
+      .findOneAndUpdate(
+        { id: userId },
+        { $set: updateData },
+        { returnDocument: "after" },
+      );
+
+    if (!result) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Remove password hash from response
+    const { passwordHash, ...userWithoutPassword } = result;
+    res.json(userWithoutPassword);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE user (admin only)
+app.delete("/api/admin/users/:id", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+    
+    // Prevent deleting yourself
+    if (req.user.id === userId) {
+      return res.status(400).json({ error: "Cannot delete your own account" });
+    }
+
+    const result = await db.collection("users").deleteOne({ id: userId });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json({ message: "User deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -542,9 +809,16 @@ app.delete("/api/admin/albums/:id", authenticateToken, async (req, res) => {
 // ==================== CLIENT GALLERIES ====================
 
 // POST create client gallery
-app.post("/api/admin/client-galleries", authenticateToken, async (req, res) => {
+app.post("/api/admin/client-galleries", authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { clientName, description } = req.body;
+    const {
+      clientName,
+      description,
+      userId,
+      password,
+      expiresAt,
+      allowDownload,
+    } = req.body;
     const uniqueUrl = uuidv4();
 
     const newGallery = {
@@ -552,9 +826,13 @@ app.post("/api/admin/client-galleries", authenticateToken, async (req, res) => {
       clientName,
       description,
       uniqueUrl,
+      userId: userId || null,
+      isProtected: !!password,
+      password: password || null,
+      expiresAt: expiresAt ? new Date(expiresAt) : null,
+      allowDownload: allowDownload !== false,
       photos: [],
       createdAt: new Date(),
-      expiresAt: null,
     };
 
     await db.collection("clientGalleries").insertOne(newGallery);
@@ -565,7 +843,7 @@ app.post("/api/admin/client-galleries", authenticateToken, async (req, res) => {
 });
 
 // GET all client galleries (admin)
-app.get("/api/admin/client-galleries", authenticateToken, async (req, res) => {
+app.get("/api/admin/client-galleries", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const galleries = await db
       .collection("clientGalleries")
@@ -618,10 +896,59 @@ app.post(
   },
 );
 
+// PATCH update client gallery
+app.patch(
+  "/api/admin/client-galleries/:id",
+  authenticateToken,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const galleryId = Number(req.params.id);
+      const {
+        clientName,
+        description,
+        userId,
+        password,
+        expiresAt,
+        allowDownload,
+      } = req.body;
+
+      const updateData = {};
+      if (clientName !== undefined) updateData.clientName = clientName;
+      if (description !== undefined) updateData.description = description;
+      if (userId !== undefined) updateData.userId = userId;
+      if (password !== undefined) {
+        updateData.password = password;
+        updateData.isProtected = !!password;
+      }
+      if (expiresAt !== undefined)
+        updateData.expiresAt = expiresAt ? new Date(expiresAt) : null;
+      if (allowDownload !== undefined) updateData.allowDownload = allowDownload;
+
+      const result = await db
+        .collection("clientGalleries")
+        .findOneAndUpdate(
+          { id: galleryId },
+          { $set: updateData },
+          { returnDocument: "after" },
+        );
+
+      if (!result.value) {
+        return res.status(404).json({ error: "Gallery not found" });
+      }
+
+      res.json(result.value);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+);
+
 // DELETE client gallery
 app.delete(
   "/api/admin/client-galleries/:id",
   authenticateToken,
+  requireAdmin,
   async (req, res) => {
     try {
       const result = await db
@@ -639,9 +966,36 @@ app.delete(
   },
 );
 
+// POST verify gallery password
+app.post("/api/galleries/:uniqueUrl/verify-password", async (req, res) => {
+  try {
+    const { password } = req.body;
+    const gallery = await db
+      .collection("clientGalleries")
+      .findOne({ uniqueUrl: req.params.uniqueUrl });
+
+    if (!gallery) {
+      return res.status(404).json({ error: "Gallery not found" });
+    }
+
+    if (!gallery.isProtected) {
+      return res.json({ valid: true });
+    }
+
+    const isValid = password === gallery.password;
+    res.json({ valid: isValid });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET client gallery by URL (public)
 app.get("/api/galleries/:uniqueUrl", async (req, res) => {
   try {
+    const { password } = req.query;
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1];
+
     const gallery = await db
       .collection("clientGalleries")
       .findOne({ uniqueUrl: req.params.uniqueUrl });
@@ -655,7 +1009,38 @@ app.get("/api/galleries/:uniqueUrl", async (req, res) => {
       return res.status(410).json({ error: "Gallery has expired" });
     }
 
-    res.json(gallery);
+    // Check access control
+    let hasAccess = false;
+
+    // If user is logged in and gallery is assigned to them
+    if (token && gallery.userId) {
+      try {
+        const decoded = jwt.verify(
+          token,
+          process.env.JWT_SECRET || "your-secret-key-change-in-production",
+        );
+        if (decoded.id === gallery.userId) {
+          hasAccess = true;
+        }
+      } catch (err) {
+        // Token invalid, continue to password check
+      }
+    }
+
+    // If password protected and no user access
+    if (gallery.isProtected && !hasAccess) {
+      if (!password || password !== gallery.password) {
+        return res.status(401).json({
+          error: "Password required",
+          isProtected: true,
+          requiresAuth: true,
+        });
+      }
+    }
+
+    // Don't send password in response
+    const { password: _, ...galleryData } = gallery;
+    res.json(galleryData);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

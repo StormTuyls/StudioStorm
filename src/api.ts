@@ -2,7 +2,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
 
 // Helper to get auth token from localStorage
 function getAuthToken() {
-  return localStorage.getItem("authToken");
+  return localStorage.getItem("token");
 }
 
 // Helper to make authenticated requests
@@ -89,23 +89,100 @@ export async function getOrganizations() {
   return res.json();
 }
 
+// ==================== USER MANAGEMENT APIs ====================
+
+export async function getUsers() {
+  const res = await authFetch(`${API_URL}/admin/users`);
+  if (!res.ok) throw new Error("Failed to fetch users");
+  return res.json();
+}
+
+export async function getUserById(id: number) {
+  const res = await authFetch(`${API_URL}/users/${id}`);
+  if (!res.ok) throw new Error("Failed to fetch user");
+  return res.json();
+}
+
+export async function updateUser(
+  id: number,
+  updates: Partial<{ firstName: string; lastName: string; email: string; role: string }>
+) {
+  const res = await authFetch(`${API_URL}/users/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) throw new Error("Failed to update user");
+  return res.json();
+}
+
+export async function deleteUser(id: number) {
+  const res = await authFetch(`${API_URL}/admin/users/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete user");
+  return res.json();
+}
+
 // ==================== ADMIN APIs ====================
 
-// Auth
+// ==================== AUTH APIs ====================
+
+export async function register(
+  username: string,
+  email: string,
+  password: string,
+  firstName?: string,
+  lastName?: string
+) {
+  const res = await fetch(`${API_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, email, password, firstName, lastName }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Registration failed");
+  }
+  return res.json();
+}
+
+// Admin creates user with role
+export async function createUser(
+  username: string,
+  email: string,
+  password: string,
+  role: string,
+  firstName?: string,
+  lastName?: string
+) {
+  const res = await authFetch(`${API_URL}/admin/users`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, email, password, firstName, lastName, role }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to create user");
+  }
+  return res.json();
+}
+
 export async function login(username: string, password: string) {
   const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
   });
-  if (!res.ok) throw new Error("Login failed");
-  const data = await res.json();
-  localStorage.setItem("authToken", data.token);
-  return data;
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Login failed");
+  }
+  return res.json();
 }
 
 export async function logout() {
-  localStorage.removeItem("authToken");
+  localStorage.removeItem("token");
 }
 
 export async function getCurrentUser() {
@@ -199,6 +276,10 @@ export async function deleteAlbum(id: number) {
 export async function createClientGallery(galleryData: {
   clientName: string;
   description: string;
+  userId?: number;
+  password?: string;
+  expiresAt?: string;
+  allowDownload?: boolean;
 }) {
   const res = await authFetch(`${API_URL}/admin/client-galleries`, {
     method: "POST",
@@ -212,6 +293,26 @@ export async function createClientGallery(galleryData: {
 export async function getClientGalleries() {
   const res = await authFetch(`${API_URL}/admin/client-galleries`);
   if (!res.ok) throw new Error("Failed to fetch galleries");
+  return res.json();
+}
+
+export async function updateClientGallery(
+  id: number,
+  updates: Partial<{
+    clientName: string;
+    description: string;
+    userId: number | null;
+    password: string | null;
+    expiresAt: string | null;
+    allowDownload: boolean;
+  }>
+) {
+  const res = await authFetch(`${API_URL}/admin/client-galleries/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) throw new Error("Failed to update gallery");
   return res.json();
 }
 
@@ -238,9 +339,46 @@ export async function deleteClientGallery(id: number) {
   return res.json();
 }
 
-export async function getClientGalleryByUrl(uniqueUrl: string) {
-  const res = await fetch(`${API_URL}/galleries/${uniqueUrl}`);
-  if (!res.ok) throw new Error("Failed to fetch gallery");
+// Client - My Galleries
+export async function getMyGalleries() {
+  const res = await authFetch(`${API_URL}/my-galleries`);
+  if (!res.ok) throw new Error("Failed to fetch your galleries");
+  return res.json();
+}
+
+export async function verifyGalleryPassword(
+  uniqueUrl: string,
+  password: string
+) {
+  const res = await fetch(`${API_URL}/galleries/${uniqueUrl}/verify-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) throw new Error("Failed to verify password");
+  return res.json();
+}
+
+export async function getClientGalleryByUrl(
+  uniqueUrl: string,
+  password?: string
+) {
+  const url = new URL(`${API_URL}/galleries/${uniqueUrl}`);
+  if (password) {
+    url.searchParams.append("password", password);
+  }
+  
+  const token = getAuthToken();
+  const headers: HeadersInit = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  
+  const res = await fetch(url.toString(), { headers });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ error: "Failed to fetch gallery" }));
+    throw new Error(error.error || "Failed to fetch gallery");
+  }
   return res.json();
 }
 

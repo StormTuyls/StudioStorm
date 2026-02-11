@@ -4,6 +4,8 @@ import {
   createClientGallery,
   uploadToClientGallery,
   deleteClientGallery,
+  updateClientGallery,
+  getUsers,
 } from "../../api";
 import Lightbox from "../Lightbox";
 
@@ -23,6 +25,19 @@ interface ClientGallery {
   uniqueUrl: string;
   photos: ClientGalleryPhoto[];
   createdAt: string;
+  userId?: number | null;
+  isProtected?: boolean;
+  expiresAt?: string | null;
+  allowDownload?: boolean;
+}
+
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  role: string;
 }
 
 interface PreparedFile {
@@ -34,6 +49,7 @@ interface PreparedFile {
 
 export default function ClientGalleriesManager() {
   const [galleries, setGalleries] = useState<ClientGallery[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [uploadingTo, setUploadingTo] = useState<number | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<PreparedFile[]>([]);
@@ -41,6 +57,9 @@ export default function ClientGalleriesManager() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxGallery, setLightboxGallery] = useState<ClientGallery | null>(
+    null,
+  );
+  const [editingGallery, setEditingGallery] = useState<ClientGallery | null>(
     null,
   );
 
@@ -53,8 +72,19 @@ export default function ClientGalleriesManager() {
     }
   };
 
+  const loadUsers = async () => {
+    try {
+      const data = await getUsers();
+      // Filter to only show client users
+      setUsers(data.filter((u: User) => u.role === "client"));
+    } catch (err) {
+      console.error("Failed to load users:", err);
+    }
+  };
+
   useEffect(() => {
     loadGalleries();
+    loadUsers();
   }, []);
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -62,9 +92,18 @@ export default function ClientGalleriesManager() {
     const form = e.currentTarget;
     const formData = new FormData(form);
 
+    const userId = formData.get("userId") as string;
+    const password = formData.get("password") as string;
+    const expiresAt = formData.get("expiresAt") as string;
+    const allowDownload = formData.get("allowDownload") === "on";
+
     const galleryData = {
       clientName: (formData.get("clientName") as string) || "",
       description: (formData.get("description") as string) || "",
+      userId: userId ? Number(userId) : undefined,
+      password: password || undefined,
+      expiresAt: expiresAt || undefined,
+      allowDownload,
     };
 
     try {
@@ -72,8 +111,38 @@ export default function ClientGalleriesManager() {
       await loadGalleries();
       setShowCreate(false);
       form.reset();
-    } catch {
-      alert("Failed to create gallery");
+    } catch (err) {
+      alert("Failed to create gallery: " + (err instanceof Error ? err.message : "Unknown error"));
+    }
+  };
+
+  const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingGallery) return;
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    const userId = formData.get("userId") as string;
+    const password = formData.get("password") as string;
+    const expiresAt = formData.get("expiresAt") as string;
+    const allowDownload = formData.get("allowDownload") === "on";
+
+    const updates = {
+      clientName: (formData.get("clientName") as string) || "",
+      description: (formData.get("description") as string) || "",
+      userId: userId ? Number(userId) : null,
+      password: password || null,
+      expiresAt: expiresAt || null,
+      allowDownload,
+    };
+
+    try {
+      await updateClientGallery(editingGallery.id, updates);
+      await loadGalleries();
+      setEditingGallery(null);
+    } catch (err) {
+      alert("Failed to update gallery: " + (err instanceof Error ? err.message : "Unknown error"));
     }
   };
 
@@ -203,7 +272,7 @@ export default function ClientGalleriesManager() {
                 type="text"
                 name="clientName"
                 required
-                placeholder="e.g., John Doe"
+                placeholder="e.g., John Doe - Event 2026"
                 className="w-full border border-gray-300 rounded-md p-2"
               />
             </div>
@@ -214,16 +283,191 @@ export default function ClientGalleriesManager() {
               <textarea
                 name="description"
                 rows={3}
-                placeholder="e.g., Wedding photos from June 2026"
+                placeholder="e.g., Your photos from the athletics championship"
                 className="w-full border border-gray-300 rounded-md p-2"
               />
             </div>
-            <button
-              type="submit"
-              className="w-full px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800"
-            >
-              Create Gallery
-            </button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Assign to Client Account
+              </label>
+              <select
+                name="userId"
+                className="w-full border border-gray-300 rounded-md p-2"
+              >
+                <option value="">-- None (Public) --</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.firstName || user.username} {user.lastName} ({user.email})
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Assigned clients can access without password
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Password Protection
+              </label>
+              <input
+                type="text"
+                name="password"
+                placeholder="Leave empty for no password"
+                className="w-full border border-gray-300 rounded-md p-2"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Optional: Require password to view gallery
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Expiration Date
+              </label>
+              <input
+                type="date"
+                name="expiresAt"
+                className="w-full border border-gray-300 rounded-md p-2"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Optional: Gallery becomes inaccessible after this date
+              </p>
+            </div>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                name="allowDownload"
+                id="allowDownload"
+                defaultChecked
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+              />
+              <label
+                htmlFor="allowDownload"
+                className="ml-2 block text-sm text-gray-700"
+              >
+                Allow photo downloads
+              </label>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="flex-1 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800"
+              >
+                Create Gallery
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCreate(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Edit Form */}
+      {editingGallery && (
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h3 className="text-lg font-medium mb-4">Edit Gallery</h3>
+          <form onSubmit={handleUpdate} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Client Name *
+              </label>
+              <input
+                type="text"
+                name="clientName"
+                required
+                defaultValue={editingGallery.clientName}
+                className="w-full border border-gray-300 rounded-md p-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description
+              </label>
+              <textarea
+                name="description"
+                rows={3}
+                defaultValue={editingGallery.description}
+                className="w-full border border-gray-300 rounded-md p-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Assign to Client Account
+              </label>
+              <select
+                name="userId"
+                defaultValue={editingGallery.userId || ""}
+                className="w-full border border-gray-300 rounded-md p-2"
+              >
+                <option value="">-- None (Public) --</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.firstName || user.username} {user.lastName} ({user.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Password Protection
+              </label>
+              <input
+                type="text"
+                name="password"
+                placeholder="Leave empty to remove password"
+                className="w-full border border-gray-300 rounded-md p-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Expiration Date
+              </label>
+              <input
+                type="date"
+                name="expiresAt"
+                defaultValue={
+                  editingGallery.expiresAt
+                    ? new Date(editingGallery.expiresAt).toISOString().split("T")[0]
+                    : ""
+                }
+                className="w-full border border-gray-300 rounded-md p-2"
+              />
+            </div>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                name="allowDownload"
+                id="allowDownloadEdit"
+                defaultChecked={editingGallery.allowDownload !== false}
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+              />
+              <label
+                htmlFor="allowDownloadEdit"
+                className="ml-2 block text-sm text-gray-700"
+              >
+                Allow photo downloads
+              </label>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="flex-1 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800"
+              >
+                Save Changes
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingGallery(null)}
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+            </div>
           </form>
         </div>
       )}
@@ -249,10 +493,31 @@ export default function ClientGalleriesManager() {
                     <p className="text-sm text-gray-600 mt-1">
                       {gallery.description}
                     </p>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Created:{" "}
-                      {new Date(gallery.createdAt).toLocaleDateString()}
-                    </p>
+                    <div className="flex flex-wrap gap-3 mt-3 text-xs">
+                      <span className="text-gray-500">
+                        Created: {new Date(gallery.createdAt).toLocaleDateString()}
+                      </span>
+                      {gallery.userId && (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                          👤 Assigned to user
+                        </span>
+                      )}
+                      {gallery.isProtected && (
+                        <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded">
+                          🔒 Password protected
+                        </span>
+                      )}
+                      {gallery.expiresAt && (
+                        <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
+                          ⏰ Expires: {new Date(gallery.expiresAt).toLocaleDateString()}
+                        </span>
+                      )}
+                      {gallery.allowDownload === false && (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded">
+                          🚫 Downloads disabled
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-medium text-gray-900">
@@ -416,6 +681,12 @@ export default function ClientGalleriesManager() {
                         + Upload Photos
                       </div>
                     </label>
+                    <button
+                      onClick={() => setEditingGallery(gallery)}
+                      className="px-4 py-2 text-sm font-medium text-blue-600 border border-blue-300 rounded hover:bg-blue-50"
+                    >
+                      Edit
+                    </button>
                     <button
                       onClick={() => handleDelete(gallery.id)}
                       className="px-4 py-2 text-sm font-medium text-red-600 border border-red-300 rounded hover:bg-red-50"

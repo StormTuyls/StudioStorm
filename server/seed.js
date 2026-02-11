@@ -454,20 +454,110 @@ const albumsData = [
   },
 ];
 
-// Users data (admin)
+// Users data (admin + demo client)
 const usersData = [
   {
     id: 1,
     username: "admin",
+    email: "admin@studiostorm.sports",
+    firstName: "Admin",
+    lastName: "Studio Storm",
     // Password: 'admin123' (change in production!)
     passwordHash: bcrypt.hashSync("admin123", 10),
     role: "admin",
     createdAt: new Date(),
+    lastLogin: null,
+  },
+  {
+    id: 2,
+    username: "johndoe",
+    email: "john@example.com",
+    firstName: "John",
+    lastName: "Doe",
+    // Password: 'client123'
+    passwordHash: bcrypt.hashSync("client123", 10),
+    role: "client",
+    createdAt: new Date(),
+    lastLogin: null,
   },
 ];
 
 // Client galleries data (examples)
-const clientGalleriesData = [];
+const clientGalleriesData = [
+  {
+    id: 1,
+    clientName: "John Doe - Athletics 2025",
+    description: "Your personal photos from the athletics championship",
+    uniqueUrl: "sample-gallery-athletics-2025",
+    userId: 2, // Assigned to John Doe
+    isProtected: true,
+    password: "demo123",
+    expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days from now
+    allowDownload: true,
+    photos: [
+      {
+        id: 1001,
+        title: "Finish Line Action",
+        description: "Crossing the finish line with great form",
+        imageUrl:
+          "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=800",
+        uploadedAt: new Date(),
+        likes: 15,
+      },
+      {
+        id: 1002,
+        title: "Warming Up",
+        description: "Pre-race warmup session",
+        imageUrl:
+          "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800",
+        uploadedAt: new Date(),
+        likes: 8,
+      },
+      {
+        id: 1003,
+        title: "Victory Celebration",
+        description: "Celebrating after a great performance",
+        imageUrl:
+          "https://images.unsplash.com/photo-1513593771513-7b58b6c4af38?w=800",
+        uploadedAt: new Date(),
+        likes: 22,
+      },
+    ],
+    createdAt: new Date(),
+  },
+  {
+    id: 2,
+    clientName: "Public Event - Sports Day 2025",
+    description: "Open gallery for all participants",
+    uniqueUrl: "public-event-2025",
+    userId: null, // Not assigned to any user
+    isProtected: false,
+    password: null,
+    expiresAt: null,
+    allowDownload: true,
+    photos: [
+      {
+        id: 2001,
+        title: "Team Group Photo",
+        description: "All participants together",
+        imageUrl:
+          "https://images.unsplash.com/photo-1571008887538-b36bb32f4571?w=800",
+        uploadedAt: new Date(),
+        likes: 45,
+      },
+      {
+        id: 2002,
+        title: "Awards Ceremony",
+        description: "Medal presentation",
+        imageUrl:
+          "https://images.unsplash.com/photo-1527871454777-032ec3f75d31?w=800",
+        uploadedAt: new Date(),
+        likes: 38,
+      },
+    ],
+    createdAt: new Date(),
+  },
+];
 
 // Organizations data
 const organizationsData = [
@@ -536,6 +626,13 @@ async function seedDatabase() {
 
     const usersResult = await db.collection("users").insertMany(usersData);
     console.log(`✅ Inserted ${usersResult.insertedCount} users`);
+
+    const clientGalleriesResult = await db
+      .collection("clientGalleries")
+      .insertMany(clientGalleriesData);
+    console.log(
+      `✅ Inserted ${clientGalleriesResult.insertedCount} client galleries`,
+    );
 
     // Create indexes for better performance
     await db
