@@ -105,7 +105,12 @@ export async function getUserById(id: number) {
 
 export async function updateUser(
   id: number,
-  updates: Partial<{ firstName: string; lastName: string; email: string; role: string }>
+  updates: Partial<{
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: string;
+  }>,
 ) {
   const res = await authFetch(`${API_URL}/users/${id}`, {
     method: "PATCH",
@@ -133,7 +138,7 @@ export async function register(
   email: string,
   password: string,
   firstName?: string,
-  lastName?: string
+  lastName?: string,
 ) {
   const res = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
@@ -154,12 +159,19 @@ export async function createUser(
   password: string,
   role: string,
   firstName?: string,
-  lastName?: string
+  lastName?: string,
 ) {
   const res = await authFetch(`${API_URL}/admin/users`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, email, password, firstName, lastName, role }),
+    body: JSON.stringify({
+      username,
+      email,
+      password,
+      firstName,
+      lastName,
+      role,
+    }),
   });
   if (!res.ok) {
     const error = await res.json();
@@ -305,7 +317,7 @@ export async function updateClientGallery(
     password: string | null;
     expiresAt: string | null;
     allowDownload: boolean;
-  }>
+  }>,
 ) {
   const res = await authFetch(`${API_URL}/admin/client-galleries/${id}`, {
     method: "PATCH",
@@ -348,7 +360,7 @@ export async function getMyGalleries() {
 
 export async function verifyGalleryPassword(
   uniqueUrl: string,
-  password: string
+  password: string,
 ) {
   const res = await fetch(`${API_URL}/galleries/${uniqueUrl}/verify-password`, {
     method: "POST",
@@ -361,22 +373,24 @@ export async function verifyGalleryPassword(
 
 export async function getClientGalleryByUrl(
   uniqueUrl: string,
-  password?: string
+  password?: string,
 ) {
   const url = new URL(`${API_URL}/galleries/${uniqueUrl}`);
   if (password) {
     url.searchParams.append("password", password);
   }
-  
+
   const token = getAuthToken();
   const headers: HeadersInit = {};
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
-  
+
   const res = await fetch(url.toString(), { headers });
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ error: "Failed to fetch gallery" }));
+    const error = await res
+      .json()
+      .catch(() => ({ error: "Failed to fetch gallery" }));
     throw new Error(error.error || "Failed to fetch gallery");
   }
   return res.json();

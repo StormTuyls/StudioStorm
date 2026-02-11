@@ -1,15 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { logout, getCurrentUser } from '../api';
-import PhotosManager from '../components/admin/PhotosManager';
-import AlbumsManager from '../components/admin/AlbumsManager';
-import ClientGalleriesManager from '../components/admin/ClientGalleriesManager';
-import UsersManager from '../components/admin/UsersManager';
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { logout, getCurrentUser } from "../api";
+import PhotosManager from "../components/admin/PhotosManager";
+import AlbumsManager from "../components/admin/AlbumsManager";
+import ClientGalleriesManager from "../components/admin/ClientGalleriesManager";
+import UsersManager from "../components/admin/UsersManager";
 
-type Tab = 'photos' | 'albums' | 'galleries' | 'users';
+type Tab = "photos" | "albums" | "galleries" | "users";
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<Tab>('photos');
+  const [activeTab, setActiveTab] = useState<Tab>("photos");
   const [user, setUser] = useState<{ username: string } | null>(null);
   const navigate = useNavigate();
 
@@ -18,7 +18,7 @@ export default function AdminDashboard() {
       const userData = await getCurrentUser();
       setUser(userData);
     } catch {
-      navigate('/admin/login');
+      navigate("/admin/login");
     }
   }, [navigate]);
 
@@ -31,7 +31,7 @@ export default function AdminDashboard() {
 
   const handleLogout = () => {
     logout();
-    navigate('/admin/login');
+    navigate("/admin/login");
   };
 
   if (!user) {
@@ -49,7 +49,9 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div>
-              <h1 className="text-3xl font-light text-gray-900">Admin Dashboard</h1>
+              <h1 className="text-3xl font-light text-gray-900">
+                Admin Dashboard
+              </h1>
               <p className="text-sm text-gray-600">Welcome, {user.username}</p>
             </div>
             <button
@@ -67,41 +69,41 @@ export default function AdminDashboard() {
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
             <button
-              onClick={() => setActiveTab('photos')}
+              onClick={() => setActiveTab("photos")}
               className={`${
-                activeTab === 'photos'
-                  ? 'border-gray-900 text-gray-900'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                activeTab === "photos"
+                  ? "border-gray-900 text-gray-900"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
             >
               Photos
             </button>
             <button
-              onClick={() => setActiveTab('albums')}
+              onClick={() => setActiveTab("albums")}
               className={`${
-                activeTab === 'albums'
-                  ? 'border-gray-900 text-gray-900'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                activeTab === "albums"
+                  ? "border-gray-900 text-gray-900"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
             >
               Albums
             </button>
             <button
-              onClick={() => setActiveTab('galleries')}
+              onClick={() => setActiveTab("galleries")}
               className={`${
-                activeTab === 'galleries'
-                  ? 'border-gray-900 text-gray-900'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                activeTab === "galleries"
+                  ? "border-gray-900 text-gray-900"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
             >
               Client Galleries
             </button>
             <button
-              onClick={() => setActiveTab('users')}
+              onClick={() => setActiveTab("users")}
               className={`${
-                activeTab === 'users'
-                  ? 'border-gray-900 text-gray-900'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                activeTab === "users"
+                  ? "border-gray-900 text-gray-900"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
             >
               Users
@@ -111,10 +113,10 @@ export default function AdminDashboard() {
 
         {/* Tab Content */}
         <div className="mt-8">
-          {activeTab === 'photos' && <PhotosManager />}
-          {activeTab === 'albums' && <AlbumsManager />}
-          {activeTab === 'galleries' && <ClientGalleriesManager />}
-          {activeTab === 'users' && <UsersManager />}
+          {activeTab === "photos" && <PhotosManager />}
+          {activeTab === "albums" && <AlbumsManager />}
+          {activeTab === "galleries" && <ClientGalleriesManager />}
+          {activeTab === "users" && <UsersManager />}
         </div>
       </div>
     </div>

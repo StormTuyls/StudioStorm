@@ -9,7 +9,11 @@ import rateLimit from "express-rate-limit";
 import path from "path";
 import { fileURLToPath } from "url";
 import { v4 as uuidv4 } from "uuid";
-import { authenticateToken, requireAdmin, generateToken } from "./middleware/auth.js";
+import {
+  authenticateToken,
+  requireAdmin,
+  generateToken,
+} from "./middleware/auth.js";
 import { upload } from "./middleware/upload.js";
 import { extractExifData } from "./utils/exif.js";
 
@@ -262,68 +266,73 @@ app.patch("/api/photos/:id/like", likeLimiter, async (req, res) => {
 
 // POST register new client
 // Admin-only user creation with role support
-app.post("/api/admin/users", authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const { username, email, password, firstName, lastName, role } = req.body;
+app.post(
+  "/api/admin/users",
+  authenticateToken,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const { username, email, password, firstName, lastName, role } = req.body;
 
-    // Validation
-    if (!username || !email || !password) {
-      return res
-        .status(400)
-        .json({ error: "Username, email, and password are required" });
+      // Validation
+      if (!username || !email || !password) {
+        return res
+          .status(400)
+          .json({ error: "Username, email, and password are required" });
+      }
+
+      if (password.length < 8) {
+        return res
+          .status(400)
+          .json({ error: "Password must be at least 8 characters" });
+      }
+
+      // Validate role
+      if (role && !["client", "admin"].includes(role)) {
+        return res.status(400).json({ error: "Invalid role" });
+      }
+
+      // Check if user already exists
+      const existingUser = await db
+        .collection("users")
+        .findOne({ $or: [{ username }, { email }] });
+
+      if (existingUser) {
+        return res
+          .status(400)
+          .json({ error: "Username or email already exists" });
+      }
+
+      // Get next user ID
+      const lastUser = await db
+        .collection("users")
+        .findOne({}, { sort: { id: -1 } });
+      const nextId = lastUser ? lastUser.id + 1 : 1;
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(password, 10);
+
+      const newUser = {
+        id: nextId,
+        username,
+        email,
+        firstName: firstName || "",
+        lastName: lastName || "",
+        passwordHash,
+        role: role || "client",
+        createdAt: new Date(),
+        lastLogin: null,
+      };
+
+      await db.collection("users").insertOne(newUser);
+
+      const { passwordHash: _, ...userWithoutPassword } = newUser;
+      res.status(201).json(userWithoutPassword);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
     }
-
-    if (password.length < 8) {
-      return res
-        .status(400)
-        .json({ error: "Password must be at least 8 characters" });
-    }
-
-    // Validate role
-    if (role && !['client', 'admin'].includes(role)) {
-      return res.status(400).json({ error: "Invalid role" });
-    }
-
-    // Check if user already exists
-    const existingUser = await db
-      .collection("users")
-      .findOne({ $or: [{ username }, { email }] });
-
-    if (existingUser) {
-      return res
-        .status(400)
-        .json({ error: "Username or email already exists" });
-    }
-
-    // Get next user ID
-    const lastUser = await db
-      .collection("users")
-      .findOne({}, { sort: { id: -1 } });
-    const nextId = lastUser ? lastUser.id + 1 : 1;
-
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const newUser = {
-      id: nextId,
-      username,
-      email,
-      firstName: firstName || "",
-      lastName: lastName || "",
-      passwordHash,
-      role: role || "client",
-      createdAt: new Date(),
-      lastLogin: null,
-    };
-
-    await db.collection("users").insertOne(newUser);
-
-    const { passwordHash: _, ...userWithoutPassword } = newUser;
-    res.status(201).json(userWithoutPassword);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+  },
+);
 
 app.post("/api/auth/register", async (req, res) => {
   try {
@@ -440,11 +449,11 @@ app.get("/api/auth/me", authenticateToken, async (req, res) => {
     const user = await db
       .collection("users")
       .findOne({ id: req.user.id }, { projection: { passwordHash: 0 } });
-    
+
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    
+
     res.json(user);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -468,17 +477,22 @@ app.get("/api/my-galleries", authenticateToken, async (req, res) => {
 // ==================== USER MANAGEMENT ====================
 
 // GET all users (admin only)
-app.get("/api/admin/users", authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const users = await db
-      .collection("users")
-      .find({}, { projection: { passwordHash: 0 } })
-      .toArray();
-    res.json(users);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+app.get(
+  "/api/admin/users",
+  authenticateToken,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const users = await db
+        .collection("users")
+        .find({}, { projection: { passwordHash: 0 } })
+        .toArray();
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+);
 
 // GET user by ID
 app.get("/api/users/:id", authenticateToken, async (req, res) => {
@@ -489,11 +503,11 @@ app.get("/api/users/:id", authenticateToken, async (req, res) => {
         { id: Number(req.params.id) },
         { projection: { passwordHash: 0 } },
       );
-    
+
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    
+
     res.json(user);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -510,14 +524,16 @@ app.patch("/api/users/:id", authenticateToken, async (req, res) => {
     const requestingUser = await db
       .collection("users")
       .findOne({ id: req.user.id });
-    
+
     if (requestingUser.role !== "admin" && req.user.id !== userId) {
       return res.status(403).json({ error: "Unauthorized" });
     }
 
     // Only admins can change roles
     if (role !== undefined && requestingUser.role !== "admin") {
-      return res.status(403).json({ error: "Only admins can change user roles" });
+      return res
+        .status(403)
+        .json({ error: "Only admins can change user roles" });
     }
 
     const updateData = {};
@@ -547,26 +563,33 @@ app.patch("/api/users/:id", authenticateToken, async (req, res) => {
 });
 
 // DELETE user (admin only)
-app.delete("/api/admin/users/:id", authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const userId = Number(req.params.id);
-    
-    // Prevent deleting yourself
-    if (req.user.id === userId) {
-      return res.status(400).json({ error: "Cannot delete your own account" });
+app.delete(
+  "/api/admin/users/:id",
+  authenticateToken,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const userId = Number(req.params.id);
+
+      // Prevent deleting yourself
+      if (req.user.id === userId) {
+        return res
+          .status(400)
+          .json({ error: "Cannot delete your own account" });
+      }
+
+      const result = await db.collection("users").deleteOne({ id: userId });
+
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
     }
-
-    const result = await db.collection("users").deleteOne({ id: userId });
-
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    res.json({ message: "User deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+  },
+);
 
 // ==================== ADMIN ROUTES ====================
 
@@ -809,52 +832,62 @@ app.delete("/api/admin/albums/:id", authenticateToken, async (req, res) => {
 // ==================== CLIENT GALLERIES ====================
 
 // POST create client gallery
-app.post("/api/admin/client-galleries", authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const {
-      clientName,
-      description,
-      userId,
-      password,
-      expiresAt,
-      allowDownload,
-    } = req.body;
-    const uniqueUrl = uuidv4();
+app.post(
+  "/api/admin/client-galleries",
+  authenticateToken,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const {
+        clientName,
+        description,
+        userId,
+        password,
+        expiresAt,
+        allowDownload,
+      } = req.body;
+      const uniqueUrl = uuidv4();
 
-    const newGallery = {
-      id: Date.now(),
-      clientName,
-      description,
-      uniqueUrl,
-      userId: userId || null,
-      isProtected: !!password,
-      password: password || null,
-      expiresAt: expiresAt ? new Date(expiresAt) : null,
-      allowDownload: allowDownload !== false,
-      photos: [],
-      createdAt: new Date(),
-    };
+      const newGallery = {
+        id: Date.now(),
+        clientName,
+        description,
+        uniqueUrl,
+        userId: userId || null,
+        isProtected: !!password,
+        password: password || null,
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        allowDownload: allowDownload !== false,
+        photos: [],
+        createdAt: new Date(),
+      };
 
-    await db.collection("clientGalleries").insertOne(newGallery);
-    res.status(201).json(newGallery);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+      await db.collection("clientGalleries").insertOne(newGallery);
+      res.status(201).json(newGallery);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+);
 
 // GET all client galleries (admin)
-app.get("/api/admin/client-galleries", authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const galleries = await db
-      .collection("clientGalleries")
-      .find({})
-      .sort({ createdAt: -1 })
-      .toArray();
-    res.json(galleries);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+app.get(
+  "/api/admin/client-galleries",
+  authenticateToken,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const galleries = await db
+        .collection("clientGalleries")
+        .find({})
+        .sort({ createdAt: -1 })
+        .toArray();
+      res.json(galleries);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+);
 
 // POST upload photo to client gallery
 app.post(

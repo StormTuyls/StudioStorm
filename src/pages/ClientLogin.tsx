@@ -11,7 +11,9 @@ export default function ClientLogin() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/client/galleries";
+  const from =
+    (location.state as { from?: { pathname: string } })?.from?.pathname ||
+    "/client/galleries";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -43,7 +43,7 @@ export default function ClientRegister() {
         formData.email,
         formData.password,
         formData.firstName,
-        formData.lastName
+        formData.lastName,
       );
       navigate("/client/galleries");
     } catch (err) {

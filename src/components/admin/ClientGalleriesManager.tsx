@@ -112,7 +112,10 @@ export default function ClientGalleriesManager() {
       setShowCreate(false);
       form.reset();
     } catch (err) {
-      alert("Failed to create gallery: " + (err instanceof Error ? err.message : "Unknown error"));
+      alert(
+        "Failed to create gallery: " +
+          (err instanceof Error ? err.message : "Unknown error"),
+      );
     }
   };
 
@@ -142,7 +145,10 @@ export default function ClientGalleriesManager() {
       await loadGalleries();
       setEditingGallery(null);
     } catch (err) {
-      alert("Failed to update gallery: " + (err instanceof Error ? err.message : "Unknown error"));
+      alert(
+        "Failed to update gallery: " +
+          (err instanceof Error ? err.message : "Unknown error"),
+      );
     }
   };
 
@@ -298,7 +304,8 @@ export default function ClientGalleriesManager() {
                 <option value="">-- None (Public) --</option>
                 {users.map((user) => (
                   <option key={user.id} value={user.id}>
-                    {user.firstName || user.username} {user.lastName} ({user.email})
+                    {user.firstName || user.username} {user.lastName} (
+                    {user.email})
                   </option>
                 ))}
               </select>
@@ -407,7 +414,8 @@ export default function ClientGalleriesManager() {
                 <option value="">-- None (Public) --</option>
                 {users.map((user) => (
                   <option key={user.id} value={user.id}>
-                    {user.firstName || user.username} {user.lastName} ({user.email})
+                    {user.firstName || user.username} {user.lastName} (
+                    {user.email})
                   </option>
                 ))}
               </select>
@@ -432,7 +440,9 @@ export default function ClientGalleriesManager() {
                 name="expiresAt"
                 defaultValue={
                   editingGallery.expiresAt
-                    ? new Date(editingGallery.expiresAt).toISOString().split("T")[0]
+                    ? new Date(editingGallery.expiresAt)
+                        .toISOString()
+                        .split("T")[0]
                     : ""
                 }
                 className="w-full border border-gray-300 rounded-md p-2"
@@ -495,7 +505,8 @@ export default function ClientGalleriesManager() {
                     </p>
                     <div className="flex flex-wrap gap-3 mt-3 text-xs">
                       <span className="text-gray-500">
-                        Created: {new Date(gallery.createdAt).toLocaleDateString()}
+                        Created:{" "}
+                        {new Date(gallery.createdAt).toLocaleDateString()}
                       </span>
                       {gallery.userId && (
                         <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
@@ -509,7 +520,8 @@ export default function ClientGalleriesManager() {
                       )}
                       {gallery.expiresAt && (
                         <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
-                          ⏰ Expires: {new Date(gallery.expiresAt).toLocaleDateString()}
+                          ⏰ Expires:{" "}
+                          {new Date(gallery.expiresAt).toLocaleDateString()}
                         </span>
                       )}
                       {gallery.allowDownload === false && (

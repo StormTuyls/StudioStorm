@@ -21,7 +21,7 @@ interface AuthContextType {
     email: string,
     password: string,
     firstName?: string,
-    lastName?: string
+    lastName?: string,
   ) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
@@ -34,13 +34,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(
-    localStorage.getItem("token")
+    localStorage.getItem("token"),
   );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
-    
+
     const verifyToken = async () => {
       if (token) {
         try {
@@ -55,9 +55,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (mounted) setLoading(false);
     };
-    
+
     verifyToken();
-    
+
     return () => {
       mounted = false;
     };
@@ -75,9 +75,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string,
     password: string,
     firstName?: string,
-    lastName?: string
+    lastName?: string,
   ) => {
-    const response = await api.register(username, email, password, firstName, lastName);
+    const response = await api.register(
+      username,
+      email,
+      password,
+      firstName,
+      lastName,
+    );
     setToken(response.token);
     setUser(response.user);
     localStorage.setItem("token", response.token);

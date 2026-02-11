@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getClientGalleryByUrl, likeGalleryPhoto, verifyGalleryPassword } from "../api";
+import {
+  getClientGalleryByUrl,
+  likeGalleryPhoto,
+  verifyGalleryPassword,
+} from "../api";
 import Lightbox from "../components/Lightbox";
 
 interface ClientGalleryPhoto {
@@ -33,12 +37,14 @@ export default function ClientGalleryView() {
   const [processingLikes, setProcessingLikes] = useState<Set<number>>(
     new Set(),
   );
-  
+
   // Password protection
   const [needsPassword, setNeedsPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
-  const [authenticatedPassword, setAuthenticatedPassword] = useState<string | null>(null);
+  const [authenticatedPassword, setAuthenticatedPassword] = useState<
+    string | null
+  >(null);
 
   // Load liked photos from localStorage on mount
   useEffect(() => {
@@ -60,11 +66,17 @@ export default function ClientGalleryView() {
     const loadGallery = async () => {
       if (!uniqueUrl) return;
       try {
-        const data = await getClientGalleryByUrl(uniqueUrl, authenticatedPassword || undefined);
+        const data = await getClientGalleryByUrl(
+          uniqueUrl,
+          authenticatedPassword || undefined,
+        );
         setGallery(data);
         setNeedsPassword(false);
       } catch (err: any) {
-        if (err.message.includes("Password required") || err.message.includes("requiresAuth")) {
+        if (
+          err.message.includes("Password required") ||
+          err.message.includes("requiresAuth")
+        ) {
           setNeedsPassword(true);
           setLoading(false);
         } else {
@@ -84,7 +96,7 @@ export default function ClientGalleryView() {
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError("");
-    
+
     try {
       const result = await verifyGalleryPassword(uniqueUrl!, password);
       if (result.valid) {
@@ -108,7 +120,10 @@ export default function ClientGalleryView() {
       if (processingLikes.size > 0) return;
 
       try {
-        const data = await getClientGalleryByUrl(uniqueUrl, authenticatedPassword || undefined);
+        const data = await getClientGalleryByUrl(
+          uniqueUrl,
+          authenticatedPassword || undefined,
+        );
         setGallery(data);
       } catch {
         console.error("Failed to poll gallery updates");
@@ -116,7 +131,13 @@ export default function ClientGalleryView() {
     }, 5000);
 
     return () => clearInterval(pollInterval);
-  }, [uniqueUrl, lightboxOpen, processingLikes.size, needsPassword, authenticatedPassword]);
+  }, [
+    uniqueUrl,
+    lightboxOpen,
+    processingLikes.size,
+    needsPassword,
+    authenticatedPassword,
+  ]);
 
   const handleLike = async (photoId: number) => {
     if (!uniqueUrl || processingLikes.has(photoId)) {
@@ -292,7 +313,8 @@ export default function ClientGalleryView() {
                 Protected Gallery
               </h2>
               <p className="text-gray-600 text-sm">
-                This gallery is password protected. Please enter the password to continue.
+                This gallery is password protected. Please enter the password to
+                continue.
               </p>
             </div>
 
@@ -335,7 +357,10 @@ export default function ClientGalleryView() {
             </div>
 
             <div className="mt-6 text-center">
-              <Link to="/" className="text-sm text-gray-500 hover:text-gray-700">
+              <Link
+                to="/"
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
                 ← Back to Home
               </Link>
             </div>

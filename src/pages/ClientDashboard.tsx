@@ -72,9 +72,7 @@ export default function ClientDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                My Galleries
-              </h1>
+              <h1 className="text-2xl font-bold text-gray-900">My Galleries</h1>
               <p className="text-sm text-gray-600">
                 Welcome back, {user?.firstName || user?.username}!
               </p>
@@ -138,7 +136,7 @@ export default function ClientDashboard() {
               const daysUntilExpiry = gallery.expiresAt
                 ? Math.ceil(
                     (new Date(gallery.expiresAt).getTime() - Date.now()) /
-                      (1000 * 60 * 60 * 24)
+                      (1000 * 60 * 60 * 24),
                   )
                 : null;
 
