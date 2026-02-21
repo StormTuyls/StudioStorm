@@ -82,6 +82,43 @@ export async function getPhotosByAlbumId(albumId: number) {
   return res.json();
 }
 
+// Events
+export async function getEvents() {
+  const res = await fetch(`${API_URL}/events`);
+  if (!res.ok) throw new Error("Failed to fetch events");
+  return res.json();
+}
+
+export async function getMainEvents() {
+  const res = await fetch(`${API_URL}/events/main`);
+  if (!res.ok) throw new Error("Failed to fetch main events");
+  return res.json();
+}
+
+export async function getEventBySlug(slug: string) {
+  const res = await fetch(`${API_URL}/events/slug/${slug}`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export async function getEventById(id: number) {
+  const res = await fetch(`${API_URL}/events/${id}`);
+  if (!res.ok) throw new Error("Failed to fetch event");
+  return res.json();
+}
+
+export async function getSubevents(parentId: number) {
+  const res = await fetch(`${API_URL}/events/${parentId}/subevents`);
+  if (!res.ok) throw new Error("Failed to fetch subevents");
+  return res.json();
+}
+
+export async function getPhotosByEventId(eventId: number) {
+  const res = await fetch(`${API_URL}/events/${eventId}/photos`);
+  if (!res.ok) throw new Error("Failed to fetch photos");
+  return res.json();
+}
+
 // Organizations
 export async function getOrganizations() {
   const res = await fetch(`${API_URL}/organizations`);
@@ -257,6 +294,51 @@ export async function createAlbum(albumData: {
   return res.json();
 }
 
+export async function createEvent(eventData: {
+  name: string;
+  slug: string;
+  description: string;
+  sport?: "athletics" | "volleyball" | "jiu-jitsu" | "other";
+  coverPhotoId?: number;
+  parentId?: number;
+}) {
+  const res = await authFetch(`${API_URL}/admin/events`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(eventData),
+  });
+  if (!res.ok) throw new Error("Failed to create event");
+  return res.json();
+}
+
+export async function updateEvent(
+  id: number,
+  updates: Partial<{
+    name: string;
+    slug: string;
+    description: string;
+    sport: "athletics" | "volleyball" | "jiu-jitsu" | "other";
+    coverPhotoId: number;
+    parentId: number;
+  }>,
+) {
+  const res = await authFetch(`${API_URL}/admin/events/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) throw new Error("Failed to update event");
+  return res.json();
+}
+
+export async function deleteEvent(id: number) {
+  const res = await authFetch(`${API_URL}/admin/events/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete event");
+  return res.json();
+}
+
 export async function updateAlbum(
   id: number,
   updates: Partial<{
@@ -417,6 +499,122 @@ export async function likeGalleryPhoto(uniqueUrl: string, photoId: number) {
   return res.json();
 }
 
+// ============== CLIENTS (Organizations) ==============
+
+export async function getClients() {
+  const res = await fetch(`${API_URL}/clients`);
+  if (!res.ok) throw new Error("Failed to fetch clients");
+  return res.json();
+}
+
+export async function createClient(data: {
+  name: string;
+  logo?: string;
+  website?: string;
+  featured?: boolean;
+}) {
+  const res = await authFetch(`${API_URL}/admin/clients`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create client");
+  return res.json();
+}
+
+export async function updateClient(
+  id: string,
+  data: {
+    name?: string;
+    logo?: string;
+    website?: string;
+    featured?: boolean;
+  },
+) {
+  const res = await authFetch(`${API_URL}/admin/clients/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update client");
+  return res.json();
+}
+
+export async function deleteClient(id: string) {
+  const res = await authFetch(`${API_URL}/admin/clients/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete client");
+  return res.json();
+}
+
+// ============== CONTACT SUBMISSIONS ==============
+
+export async function submitContactForm(data: {
+  name: string;
+  email: string;
+  organization: string;
+  service: string;
+  eventDate: string;
+  message: string;
+}) {
+  const res = await fetch(`${API_URL}/contact/submit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to submit contact form");
+  }
+  return res.json();
+}
+
+export async function getContactSubmissions() {
+  const res = await authFetch(`${API_URL}/admin/contact-submissions`);
+  if (!res.ok) throw new Error("Failed to fetch contact submissions");
+  return res.json();
+}
+
+export async function updateContactSubmission(
+  id: string,
+  status: "new" | "reviewed" | "responded",
+) {
+  const res = await authFetch(`${API_URL}/admin/contact-submissions/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error("Failed to update contact submission");
+  return res.json();
+}
+
+export async function deleteContactSubmission(id: string) {
+  const res = await authFetch(`${API_URL}/admin/contact-submissions/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete contact submission");
+  return res.json();
+}
+
+// ============== SITE SETTINGS ==============
+
+export async function getSiteSettings() {
+  const res = await fetch(`${API_URL}/site-settings`);
+  if (!res.ok) throw new Error("Failed to fetch site settings");
+  return res.json();
+}
+
+export async function updateSiteSettings(data: Record<string, unknown>) {
+  const res = await authFetch(`${API_URL}/admin/site-settings`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update site settings");
+  return res.json();
+}
+
 // ============== ORGANIZATIONS ADMIN ==============
 
 export async function createOrganization(data: {
@@ -454,24 +652,6 @@ export async function deleteOrganization(id: number) {
   return res.json();
 }
 
-// ============== SITE SETTINGS ==============
-
-export async function getSiteSettings() {
-  const res = await fetch(`${API_URL}/site-settings`);
-  if (!res.ok) throw new Error("Failed to fetch site settings");
-  return res.json();
-}
-
-export async function updateSiteSettings(data: Record<string, unknown>) {
-  const res = await authFetch(`${API_URL}/admin/site-settings`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error("Failed to update site settings");
-  return res.json();
-}
-
 // ============== ABOUT CONTENT ==============
 
 export async function getAboutContent() {
@@ -487,5 +667,99 @@ export async function updateAboutContent(data: Record<string, unknown>) {
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Failed to update about content");
+  return res.json();
+}
+
+// ============== SERVICES ==============
+
+export async function getServices() {
+  const res = await fetch(`${API_URL}/services`);
+  if (!res.ok) throw new Error("Failed to fetch services");
+  return res.json();
+}
+
+export async function createService(serviceData: Record<string, unknown>) {
+  const res = await authFetch(`${API_URL}/admin/services`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(serviceData),
+  });
+  if (!res.ok) throw new Error("Failed to create service");
+  return res.json();
+}
+
+export async function updateService(
+  id: string,
+  updates: Record<string, unknown>,
+) {
+  const res = await authFetch(`${API_URL}/admin/services/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) throw new Error("Failed to update service");
+  return res.json();
+}
+
+export async function deleteService(id: string) {
+  const res = await authFetch(`${API_URL}/admin/services/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete service");
+  return res.json();
+}
+
+// ============== PORTFOLIO ==============
+
+export async function getPortfolio() {
+  const res = await fetch(`${API_URL}/portfolio`);
+  if (!res.ok) throw new Error("Failed to fetch portfolio");
+  return res.json();
+}
+
+export async function addToPortfolio(portfolioData: Record<string, unknown>) {
+  const res = await authFetch(`${API_URL}/admin/portfolio`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(portfolioData),
+  });
+  if (!res.ok) throw new Error("Failed to add to portfolio");
+  return res.json();
+}
+
+export async function removeFromPortfolio(id: string) {
+  const res = await authFetch(`${API_URL}/admin/portfolio/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to remove from portfolio");
+  return res.json();
+}
+
+// ============== CONTENT PAGES ==============
+
+export async function getContentPage(slug: string) {
+  const res = await fetch(`${API_URL}/content/${slug}`);
+  if (!res.ok) throw new Error("Failed to fetch content page");
+  return res.json();
+}
+
+export async function updateContentPage(
+  slug: string,
+  pageData: Record<string, unknown>,
+) {
+  const res = await authFetch(`${API_URL}/admin/content/${slug}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(pageData),
+  });
+  if (!res.ok) throw new Error("Failed to update content page");
+  return res.json();
+}
+
+// ============== SALES METRICS ==============
+
+export async function getSalesMetrics() {
+  const res = await authFetch(`${API_URL}/admin/sales/metrics`);
+  if (!res.ok) throw new Error("Failed to fetch sales metrics");
   return res.json();
 }

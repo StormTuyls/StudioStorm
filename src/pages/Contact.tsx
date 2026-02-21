@@ -1,24 +1,48 @@
-import { useState } from 'react';
-import type { FormEvent } from 'react';
+import { useState } from "react";
+import type { FormEvent } from "react";
+import { submitContactForm } from "../api";
 
 export default function Contact() {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    message: '',
+    name: "",
+    email: "",
+    organization: "",
+    service: "private-athlete",
+    eventDate: "",
+    message: "",
   });
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    // In a real app, this would send the form data to a backend
-    console.log('Form submitted:', formData);
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 3000);
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      await submitContactForm(formData);
+      setSubmitted(true);
+      setFormData({
+        name: "",
+        email: "",
+        organization: "",
+        service: "private-athlete",
+        eventDate: "",
+        message: "",
+      });
+      setTimeout(() => setSubmitted(false), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to submit form");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -26,96 +50,153 @@ export default function Contact() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="mb-12">
-        <h1 className="text-4xl font-light text-gray-900 mb-4">Contact</h1>
-        <p className="text-gray-600">
-          Interesse in sportfotografie voor jouw team of evenement? Neem contact op!
+    <div className="bg-[#0b0b0c] text-white">
+      <section className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-20">
+        <p className="text-xs uppercase tracking-[0.4em] text-white/50">
+          Contact
         </p>
-      </div>
+        <h1 className="font-display text-4xl sm:text-5xl mt-4">
+          Request availability for your next event.
+        </h1>
+        <p className="mt-6 text-white/70">
+          Share the essentials and we will respond with a tailored proposal and
+          timeline.
+        </p>
 
-      {submitted && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
-          Bedankt voor je bericht! We nemen snel contact met je op.
-        </div>
-      )}
+        {submitted && (
+          <div className="mt-8 rounded-2xl border border-emerald-400/40 bg-emerald-500/10 p-4 text-emerald-200">
+            Thanks for reaching out. We will respond shortly.
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-            Naam
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            required
-            value={formData.name}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
-          />
-        </div>
+        {error && (
+          <div className="mt-8 rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-red-200">
+            {error}
+          </div>
+        )}
 
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-            Email
-          </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            required
-            value={formData.email}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
-          />
-        </div>
+        <form onSubmit={handleSubmit} className="mt-10 grid gap-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <label
+                htmlFor="name"
+                className="block text-xs uppercase tracking-[0.3em] text-white/60 mb-2"
+              >
+                Name
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                required
+                value={formData.name}
+                onChange={handleChange}
+                className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white focus:border-white/40 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-xs uppercase tracking-[0.3em] text-white/60 mb-2"
+              >
+                Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                required
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white focus:border-white/40 focus:outline-none"
+              />
+            </div>
+          </div>
 
-        <div>
-          <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
-            Onderwerp
-          </label>
-          <input
-            type="text"
-            id="subject"
-            name="subject"
-            required
-            value={formData.subject}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
-          />
-        </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <label
+                htmlFor="organization"
+                className="block text-xs uppercase tracking-[0.3em] text-white/60 mb-2"
+              >
+                Organization
+              </label>
+              <input
+                type="text"
+                id="organization"
+                name="organization"
+                value={formData.organization}
+                onChange={handleChange}
+                className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white focus:border-white/40 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="service"
+                className="block text-xs uppercase tracking-[0.3em] text-white/60 mb-2"
+              >
+                Service
+              </label>
+              <select
+                id="service"
+                name="service"
+                value={formData.service}
+                onChange={handleChange}
+                className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white focus:border-white/40 focus:outline-none"
+              >
+                <option value="private-athlete">Private Athlete</option>
+                <option value="team-media-day">Team Media Day</option>
+                <option value="competition-coverage">
+                  Competition Coverage
+                </option>
+              </select>
+            </div>
+          </div>
 
-        <div>
-          <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
-            Bericht
-          </label>
-          <textarea
-            id="message"
-            name="message"
-            required
-            rows={6}
-            value={formData.message}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent transition resize-none"
-          />
-        </div>
+          <div>
+            <label
+              htmlFor="eventDate"
+              className="block text-xs uppercase tracking-[0.3em] text-white/60 mb-2"
+            >
+              Event Date
+            </label>
+            <input
+              type="date"
+              id="eventDate"
+              name="eventDate"
+              value={formData.eventDate}
+              onChange={handleChange}
+              className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white focus:border-white/40 focus:outline-none"
+            />
+          </div>
 
-        <button
-          type="submit"
-          className="w-full bg-gray-900 text-white py-3 px-6 rounded-lg hover:bg-gray-800 transition font-medium"
-        >
-          Verstuur
-        </button>
-      </form>
+          <div>
+            <label
+              htmlFor="message"
+              className="block text-xs uppercase tracking-[0.3em] text-white/60 mb-2"
+            >
+              Message
+            </label>
+            <textarea
+              id="message"
+              name="message"
+              required
+              rows={6}
+              value={formData.message}
+              onChange={handleChange}
+              className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white focus:border-white/40 focus:outline-none resize-none"
+            />
+          </div>
 
-      <div className="mt-12 pt-8 border-t border-gray-200">
-        <h2 className="text-xl font-light text-gray-900 mb-4">Volg Ons</h2>
-        <div className="space-y-2 text-gray-600">
-          <p>Email: <a href="mailto:info@studiostorm.nl" className="text-blue-600 hover:text-blue-800">info@studiostorm.nl</a></p>
-          <p>Instagram: <a href="https://instagram.com/studiostorm.sports" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">@studiostorm.sports</a></p>
-        </div>
-      </div>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="bg-[#f0c987] text-black px-6 py-4 text-xs uppercase tracking-[0.3em] hover:bg-[#d8b77a] transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? "Submitting..." : "Request Availability"}
+          </button>
+        </form>
+      </section>
     </div>
   );
 }

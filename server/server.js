@@ -195,6 +195,86 @@ app.get("/api/albums/:parentId/subalbums", async (req, res) => {
   }
 });
 
+// EVENTS (aliases for albums)
+
+// GET all events
+app.get("/api/events", async (req, res) => {
+  try {
+    const events = await db.collection("albums").find({}).toArray();
+    res.json(events);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET main events only (years)
+app.get("/api/events/main", async (req, res) => {
+  try {
+    const events = await db
+      .collection("albums")
+      .find({ parentId: { $exists: false } })
+      .toArray();
+    res.json(events);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET event by slug
+app.get("/api/events/slug/*", async (req, res) => {
+  try {
+    const slug = req.params[0];
+    const event = await db.collection("albums").findOne({ slug: slug });
+    if (!event) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+    res.json(event);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET event by ID
+app.get("/api/events/:id", async (req, res) => {
+  try {
+    const event = await db
+      .collection("albums")
+      .findOne({ id: Number(req.params.id) });
+    if (!event) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+    res.json(event);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET subevents by parent ID
+app.get("/api/events/:parentId/subevents", async (req, res) => {
+  try {
+    const subevents = await db
+      .collection("albums")
+      .find({ parentId: Number(req.params.parentId) })
+      .toArray();
+    res.json(subevents);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET photos by event
+app.get("/api/events/:eventId/photos", async (req, res) => {
+  try {
+    const photos = await db
+      .collection("photos")
+      .find({ albumId: Number(req.params.eventId) })
+      .toArray();
+    res.json(photos);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET all organizations
 app.get("/api/organizations", async (req, res) => {
   try {
@@ -829,6 +909,83 @@ app.delete("/api/admin/albums/:id", authenticateToken, async (req, res) => {
   }
 });
 
+// EVENTS CRUD (aliases for albums)
+
+// POST create event
+app.post("/api/admin/events", authenticateToken, async (req, res) => {
+  try {
+    const { name, slug, description, sport, coverPhotoId, parentId } = req.body;
+
+    const lastEvent = await db
+      .collection("albums")
+      .find({})
+      .sort({ id: -1 })
+      .limit(1)
+      .toArray();
+    const nextId = lastEvent.length > 0 ? lastEvent[0].id + 1 : 1;
+
+    const newEvent = {
+      id: nextId,
+      name,
+      slug,
+      description,
+      sport: sport || "other",
+      coverPhotoId: coverPhotoId ? Number(coverPhotoId) : null,
+      photoCount: 0,
+      visibility: "public",
+      revenue: 0,
+      status: "draft",
+      ...(parentId && { parentId: Number(parentId) }),
+    };
+
+    await db.collection("albums").insertOne(newEvent);
+    res.status(201).json(newEvent);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PATCH update event
+app.patch("/api/admin/events/:id", authenticateToken, async (req, res) => {
+  try {
+    const eventId = Number(req.params.id);
+    const updates = req.body;
+
+    delete updates._id;
+
+    if (updates.coverPhotoId) {
+      updates.coverPhotoId = Number(updates.coverPhotoId);
+    }
+    if (updates.parentId) {
+      updates.parentId = Number(updates.parentId);
+    }
+
+    await db.collection("albums").updateOne({ id: eventId }, { $set: updates });
+
+    const updatedEvent = await db.collection("albums").findOne({ id: eventId });
+    res.json(updatedEvent);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE event
+app.delete("/api/admin/events/:id", authenticateToken, async (req, res) => {
+  try {
+    const result = await db
+      .collection("albums")
+      .deleteOne({ id: Number(req.params.id) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+
+    res.json({ message: "Event deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== CLIENT GALLERIES ====================
 
 // POST create client gallery
@@ -1385,6 +1542,370 @@ app.patch("/api/admin/about-content", authenticateToken, async (req, res) => {
       );
 
     res.json(result.value || content);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============== CLIENTS ENDPOINTS ==============
+
+// Get all clients
+app.get("/api/clients", async (req, res) => {
+  try {
+    const clients = await db.collection("clients").find({}).toArray();
+    res.json(clients);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create client (admin)
+app.post("/api/admin/clients", authenticateToken, async (req, res) => {
+  try {
+    const { name, logo, website, featured } = req.body;
+    const client = {
+      id: new ObjectId().toString(),
+      name,
+      logo,
+      website,
+      featured: featured || false,
+      createdAt: new Date(),
+    };
+    await db.collection("clients").insertOne(client);
+    res.json(client);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update client (admin)
+app.patch("/api/admin/clients/:id", authenticateToken, async (req, res) => {
+  try {
+    const { name, logo, website, featured } = req.body;
+    const result = await db.collection("clients").findOneAndUpdate(
+      { id: req.params.id },
+      {
+        $set: {
+          name,
+          logo,
+          website,
+          featured,
+          updatedAt: new Date(),
+        },
+      },
+      { returnDocument: "after" },
+    );
+
+    if (!result.value) {
+      return res.status(404).json({ error: "Client not found" });
+    }
+    res.json(result.value);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete client (admin)
+app.delete("/api/admin/clients/:id", authenticateToken, async (req, res) => {
+  try {
+    const result = await db
+      .collection("clients")
+      .deleteOne({ id: req.params.id });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: "Client not found" });
+    }
+    res.json({ message: "Client deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============== CONTACT SUBMISSIONS ENDPOINTS ==============
+
+// Submit contact form (public)
+app.post("/api/contact/submit", async (req, res) => {
+  try {
+    const { name, email, organization, service, eventDate, message } = req.body;
+
+    if (!name || !email || !message) {
+      return res
+        .status(400)
+        .json({ error: "Name, email, and message are required" });
+    }
+
+    const submission = {
+      id: new ObjectId().toString(),
+      name,
+      email,
+      organization,
+      service,
+      eventDate,
+      message,
+      status: "new",
+      submittedAt: new Date(),
+    };
+
+    await db.collection("contactSubmissions").insertOne(submission);
+    res.json({ message: "Contact form submitted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get contact submissions (admin)
+app.get(
+  "/api/admin/contact-submissions",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const submissions = await db
+        .collection("contactSubmissions")
+        .find({})
+        .sort({ submittedAt: -1 })
+        .toArray();
+      res.json(submissions);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+);
+
+// Update contact submission status (admin)
+app.patch(
+  "/api/admin/contact-submissions/:id",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { status } = req.body;
+      const result = await db
+        .collection("contactSubmissions")
+        .findOneAndUpdate(
+          { id: req.params.id },
+          { $set: { status, updatedAt: new Date() } },
+          { returnDocument: "after" },
+        );
+
+      if (!result.value) {
+        return res.status(404).json({ error: "Submission not found" });
+      }
+      res.json(result.value);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+);
+
+// Delete contact submission (admin)
+app.delete(
+  "/api/admin/contact-submissions/:id",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const result = await db
+        .collection("contactSubmissions")
+        .deleteOne({ id: req.params.id });
+
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ error: "Submission not found" });
+      }
+      res.json({ message: "Submission deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+);
+
+// ============== SITE SETTINGS ENDPOINTS (UPDATED) ==============
+
+// Get site settings - now with admin endpoint for updates
+app.patch("/api/admin/site-settings", authenticateToken, async (req, res) => {
+  try {
+    const {
+      siteName,
+      heroTitle,
+      heroSubtitle,
+      heroImage,
+      footerText,
+      instagramHandle,
+      instagramUrl,
+      contactEmail,
+      featuredSectionTitle,
+      featuredSectionSubtitle,
+    } = req.body;
+
+    const result = await db.collection("siteSettings").findOneAndUpdate(
+      { id: 1 },
+      {
+        $set: {
+          id: 1,
+          siteName,
+          heroTitle,
+          heroSubtitle,
+          heroImage,
+          footerText,
+          instagramHandle,
+          instagramUrl,
+          contactEmail,
+          featuredSectionTitle,
+          featuredSectionSubtitle,
+          updatedAt: new Date(),
+        },
+      },
+      { returnDocument: "after", upsert: true },
+    );
+
+    res.json(result.value);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== SERVICES ====================
+app.get("/api/services", async (req, res) => {
+  try {
+    const services = await db.collection("services").find({}).toArray();
+    res.json(services);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/admin/services", authenticateToken, async (req, res) => {
+  try {
+    const {
+      name,
+      description,
+      sport,
+      whatsIncluded,
+      startingPrice,
+      deliverables,
+      ctaLabel,
+      ctaUrl,
+      isActive,
+    } = req.body;
+    const service = {
+      id: uuidv4(),
+      name,
+      description,
+      sport: sport || "athletics",
+      whatsIncluded: whatsIncluded || [],
+      startingPrice: startingPrice || 0,
+      deliverables: deliverables || [],
+      ctaLabel: ctaLabel || "Learn More",
+      ctaUrl: ctaUrl || "/contact",
+      isActive: isActive !== false,
+      displayOrder: (await db.collection("services").countDocuments()) + 1,
+      createdAt: new Date(),
+    };
+    await db.collection("services").insertOne(service);
+    res.status(201).json(service);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.patch("/api/admin/services/:id", authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await db
+      .collection("services")
+      .findOneAndUpdate(
+        { id },
+        { $set: { ...req.body, updatedAt: new Date() } },
+        { returnDocument: "after" },
+      );
+    res.json(result.value);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/admin/services/:id", authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.collection("services").deleteOne({ id });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== PORTFOLIO ====================
+app.get("/api/portfolio", async (req, res) => {
+  try {
+    const portfolio = await db
+      .collection("portfolio")
+      .find({})
+      .sort({ sport: 1, order: 1 })
+      .toArray();
+    res.json(portfolio);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/admin/portfolio", authenticateToken, async (req, res) => {
+  try {
+    const { photoId, sport, caption } = req.body;
+    const item = {
+      id: uuidv4(),
+      photoId,
+      sport: sport || "athletics",
+      caption: caption || "",
+      order: (await db.collection("portfolio").countDocuments()) + 1,
+      createdAt: new Date(),
+    };
+    await db.collection("portfolio").insertOne(item);
+    res.status(201).json(item);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/admin/portfolio/:id", authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.collection("portfolio").deleteOne({ id });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== CONTENT PAGES ====================
+app.get("/api/content/:slug", async (req, res) => {
+  try {
+    const { slug } = req.params;
+    let page = await db.collection("contentPages").findOne({ slug });
+    if (!page) {
+      // Return default empty structure
+      page = {
+        id: uuidv4(),
+        slug,
+        title: slug.replace("-", " ").toUpperCase(),
+        blocks: [],
+        seoTitle: "",
+        seoDescription: "",
+      };
+    }
+    res.json(page);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.patch("/api/admin/content/:slug", authenticateToken, async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const result = await db
+      .collection("contentPages")
+      .findOneAndUpdate(
+        { slug },
+        { $set: { ...req.body, updatedAt: new Date() } },
+        { returnDocument: "after", upsert: true },
+      );
+    res.json(result.value);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

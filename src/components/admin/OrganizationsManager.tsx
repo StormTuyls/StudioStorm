@@ -5,10 +5,10 @@ import {
   updateOrganization,
   deleteOrganization,
 } from "../../api";
-import type { Organization } from "../../types";
+import type { Client } from "../../types";
 
 export default function OrganizationsManager() {
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [organizations, setOrganizations] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
@@ -85,7 +85,7 @@ export default function OrganizationsManager() {
       {/* Form */}
       <div className="bg-white shadow sm:rounded-lg p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">
-          {editingId ? "Edit Organization" : "Add Organization"}
+          {editingId ? "Edit Client" : "Add Client"}
         </h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -157,12 +157,12 @@ export default function OrganizationsManager() {
       <div className="bg-white shadow sm:rounded-lg">
         <div className="px-4 py-5 sm:p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
-            Organizations ({organizations.length})
+            Clients ({organizations.length})
           </h3>
           <div className="space-y-4">
             {organizations.length === 0 ? (
               <p className="text-gray-500 text-center py-8">
-                No organizations yet. Add one above.
+                No clients yet. Add one above.
               </p>
             ) : (
               organizations.map((org) => (

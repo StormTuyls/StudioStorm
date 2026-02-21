@@ -255,7 +255,7 @@ export default function ClientGalleriesManager() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-light text-gray-900">
-          Client Galleries ({galleries.length})
+          Client Access ({galleries.length})
         </h2>
         <button
           onClick={() => setShowCreate(!showCreate)}
@@ -268,7 +268,7 @@ export default function ClientGalleriesManager() {
       {/* Create Form */}
       {showCreate && (
         <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-medium mb-4">Create Client Gallery</h3>
+          <h3 className="text-lg font-medium mb-4">Create Client Access</h3>
           <form onSubmit={handleCreate} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

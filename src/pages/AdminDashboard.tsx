@@ -1,25 +1,18 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { logout, getCurrentUser } from "../api";
-import PhotosManager from "../components/admin/PhotosManager";
+import AdminSidebar, { type AdminTab } from "../components/admin/AdminSidebar";
+import DashboardOverview from "../components/admin/DashboardOverview";
 import AlbumsManager from "../components/admin/AlbumsManager";
-import ClientGalleriesManager from "../components/admin/ClientGalleriesManager";
-import UsersManager from "../components/admin/UsersManager";
-import OrganizationsManager from "../components/admin/OrganizationsManager";
+import ClientsManager from "../components/admin/ClientsManager";
 import SiteSettingsManager from "../components/admin/SiteSettingsManager";
-import AboutContentManager from "../components/admin/AboutContentManager";
-
-type Tab =
-  | "photos"
-  | "albums"
-  | "galleries"
-  | "organizations"
-  | "settings"
-  | "about"
-  | "users";
+import PortfolioManager from "../components/admin/PortfolioManager";
+import ServicesManager from "../components/admin/ServicesManager";
+import SalesManager from "../components/admin/SalesManager";
+import ContentManager from "../components/admin/ContentManager";
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<Tab>("photos");
+  const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
   const [user, setUser] = useState<{ username: string } | null>(null);
   const navigate = useNavigate();
 
@@ -53,115 +46,92 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
+      {/* Sidebar */}
+      <AdminSidebar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onLogout={handleLogout}
+        username={user.username}
+      />
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Dashboard Tab */}
+          {activeTab === "dashboard" && (
+            <DashboardOverview onNavigate={setActiveTab} />
+          )}
+
+          {/* Events Tab */}
+          {activeTab === "events" && (
             <div>
-              <h1 className="text-3xl font-light text-gray-900">
-                Admin Dashboard
-              </h1>
-              <p className="text-sm text-gray-600">Welcome, {user.username}</p>
+              <h1 className="text-4xl font-light text-gray-900 mb-8">Events</h1>
+              <AlbumsManager />
             </div>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </div>
+          )}
 
-      {/* Tabs */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8 overflow-x-auto">
-            <button
-              onClick={() => setActiveTab("photos")}
-              className={`${
-                activeTab === "photos"
-                  ? "border-gray-900 text-gray-900"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-            >
-              Photos
-            </button>
-            <button
-              onClick={() => setActiveTab("albums")}
-              className={`${
-                activeTab === "albums"
-                  ? "border-gray-900 text-gray-900"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-            >
-              Albums
-            </button>
-            <button
-              onClick={() => setActiveTab("galleries")}
-              className={`${
-                activeTab === "galleries"
-                  ? "border-gray-900 text-gray-900"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-            >
-              Client Galleries
-            </button>
-            <button
-              onClick={() => setActiveTab("organizations")}
-              className={`${
-                activeTab === "organizations"
-                  ? "border-gray-900 text-gray-900"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-            >
-              Partners
-            </button>
-            <button
-              onClick={() => setActiveTab("settings")}
-              className={`${
-                activeTab === "settings"
-                  ? "border-gray-900 text-gray-900"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-            >
-              Site Settings
-            </button>
-            <button
-              onClick={() => setActiveTab("about")}
-              className={`${
-                activeTab === "about"
-                  ? "border-gray-900 text-gray-900"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-            >
-              About Page
-            </button>
-            <button
-              onClick={() => setActiveTab("users")}
-              className={`${
-                activeTab === "users"
-                  ? "border-gray-900 text-gray-900"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-            >
-              Users
-            </button>
-          </nav>
-        </div>
+          {/* Portfolio Tab */}
+          {activeTab === "portfolio" && (
+            <div>
+              <h1 className="text-4xl font-light text-gray-900 mb-8">
+                Portfolio
+              </h1>
+              <PortfolioManager />
+            </div>
+          )}
 
-        {/* Tab Content */}
-        <div className="mt-8">
-          {activeTab === "photos" && <PhotosManager />}
-          {activeTab === "albums" && <AlbumsManager />}
-          {activeTab === "galleries" && <ClientGalleriesManager />}
-          {activeTab === "organizations" && <OrganizationsManager />}
-          {activeTab === "settings" && <SiteSettingsManager />}
-          {activeTab === "about" && <AboutContentManager />}
-          {activeTab === "users" && <UsersManager />}
+          {/* Services Tab */}
+          {activeTab === "services" && (
+            <div>
+              <h1 className="text-4xl font-light text-gray-900 mb-8">
+                Services
+              </h1>
+              <ServicesManager />
+            </div>
+          )}
+
+          {/* Clients Tab */}
+          {activeTab === "clients" && (
+            <div>
+              <h1 className="text-4xl font-light text-gray-900 mb-8">
+                Clients
+              </h1>
+              <ClientsManager />
+            </div>
+          )}
+
+          {/* Content Tab */}
+          {activeTab === "content" && <ContentManager />}
+
+          {/* Sales Tab */}
+          {activeTab === "sales" && (
+            <div>
+              <h1 className="text-4xl font-light text-gray-900 mb-8">
+                Sales & Revenue
+              </h1>
+              <SalesManager />
+            </div>
+          )}
+
+          {/* Settings Tab */}
+          {activeTab === "settings" && (
+            <div>
+              <h1 className="text-4xl font-light text-gray-900 mb-8">
+                Settings
+              </h1>
+              <div className="space-y-8">
+                <div>
+                  <h2 className="text-xl font-light text-gray-900 mb-4">
+                    Site Settings
+                  </h2>
+                  <SiteSettingsManager />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

@@ -257,7 +257,7 @@ export default function PhotosManager() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-light text-gray-900">
-          Photos ({photos.length})
+          Work Images ({photos.length})
         </h2>
         <button
           onClick={() => setShowUpload(!showUpload)}
@@ -269,7 +269,7 @@ export default function PhotosManager() {
       {/* Upload Form */}
       {showUpload && (
         <div className="bg-white p-6 rounded-lg shadow border-l-4 border-blue-500">
-          <h3 className="text-lg font-medium mb-4">Batch Upload Photos</h3>
+          <h3 className="text-lg font-medium mb-4">Batch Upload Images</h3>
 
           {uploadSuccess && (
             <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
@@ -298,7 +298,7 @@ export default function PhotosManager() {
                 className="w-full border border-gray-300 rounded-md p-2 disabled:opacity-50 cursor-pointer"
               />
               <p className="text-xs text-gray-500 mt-2">
-                Select one or multiple photos to upload
+                Select one or multiple images to upload
               </p>
             </div>
           ) : (
@@ -471,7 +471,7 @@ export default function PhotosManager() {
           )}
         </div>
       )}
-      {/* Photos Grid */}
+      {/* Work Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {photos.map((photo) => (
           <div

@@ -1,100 +1,73 @@
-import { useEffect, useState } from "react";
-import { getAboutContent } from "../api";
-import type { AboutContent } from "../types";
-
 export default function About() {
-  const [content, setContent] = useState<AboutContent | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadContent = async () => {
-      try {
-        const data = await getAboutContent();
-        setContent(data);
-      } catch (error) {
-        console.error("Failed to load about content:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadContent();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <p className="text-center text-gray-600">Loading...</p>
-      </div>
-    );
-  }
-
-  if (!content) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <p className="text-center text-gray-600">Content not available</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="mb-12">
-        <h1 className="text-4xl font-light text-gray-900 mb-8">
-          {content.title}
+    <div className="bg-[#0b0b0c] text-white">
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-20">
+        <p className="text-xs uppercase tracking-[0.4em] text-white/50">
+          About
+        </p>
+        <h1 className="font-display text-4xl sm:text-5xl mt-4">
+          Studio Storm is built on athletics-first storytelling.
         </h1>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-          <div className="md:col-span-1">
-            <div className="aspect-square bg-gray-200 rounded-lg overflow-hidden">
-              <img
-                src={content.image}
-                alt={content.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
+        <div className="mt-10 grid gap-10 md:grid-cols-[1fr_1.2fr]">
+          <div className="overflow-hidden rounded-3xl border border-white/10 bg-black/40">
+            <img
+              src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1200&auto=format&fit=crop"
+              alt="Studio Storm"
+              className="h-full w-full object-cover"
+            />
           </div>
-
-          <div className="md:col-span-2 space-y-4 text-gray-600">
-            {content.paragraphs.map((paragraph, index) => (
-              <p key={index}>{paragraph}</p>
-            ))}
-          </div>
-        </div>
-
-        <div className="border-t border-gray-200 pt-8">
-          <h2 className="text-2xl font-light text-gray-900 mb-6">
-            Onze Specialisaties
-          </h2>
-          <div className="space-y-6">
-            {content.specializations.map((spec, index) => (
-              <div key={index}>
-                <h3 className="text-lg font-medium text-gray-900">
-                  {spec.name}
-                </h3>
-                <p className="text-sm text-gray-500">{spec.subtitle}</p>
-                <p className="text-gray-600 mt-2">{spec.description}</p>
-              </div>
-            ))}
+          <div className="space-y-6 text-white/70">
+            <p>
+              We focus on the edge of performance: the calm before the gun, the
+              drive phase, the finish, and the moments in between. Our work is
+              trusted by clubs and media partners who want clarity and prestige
+              without the noise.
+            </p>
+            <p>
+              With a primary focus on athletics, and additional coverage in
+              volleyball and jiu-jitsu, we create imagery that feels editorial
+              and timeless while staying true to the sport.
+            </p>
+            <p>
+              Studio Storm partners with Atletieknieuws, Agones Media,
+              Runnerslab Athletics Team, and VAL, delivering consistent coverage
+              across seasons.
+            </p>
           </div>
         </div>
+      </section>
 
-        <div className="border-t border-gray-200 pt-8 mt-8">
-          <h2 className="text-2xl font-light text-gray-900 mb-4">Contact</h2>
-          <p className="text-gray-600">
-            {content.contactText}{" "}
-            <a
-              href={content.contactLinkUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800"
-            >
-              {content.contactLinkText}
-            </a>{" "}
-            {content.contactSuffix}
-          </p>
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-24">
+        <div className="grid gap-6 md:grid-cols-3">
+          <div className="rounded-2xl border border-white/10 bg-black/40 p-6">
+            <p className="text-xs uppercase tracking-[0.3em] text-white/50">
+              Focus
+            </p>
+            <p className="font-display text-2xl mt-4">Athletics-first.</p>
+            <p className="mt-3 text-white/70">
+              Speed, precision, and the emotional finish.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-black/40 p-6">
+            <p className="text-xs uppercase tracking-[0.3em] text-white/50">
+              Style
+            </p>
+            <p className="font-display text-2xl mt-4">Clean and cinematic.</p>
+            <p className="mt-3 text-white/70">
+              Minimal UI, strong typography, and generous spacing.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-black/40 p-6">
+            <p className="text-xs uppercase tracking-[0.3em] text-white/50">
+              Delivery
+            </p>
+            <p className="font-display text-2xl mt-4">Fast, curated edits.</p>
+            <p className="mt-3 text-white/70">
+              Organized and ready for media or sponsors.
+            </p>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

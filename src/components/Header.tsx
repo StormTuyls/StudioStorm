@@ -11,92 +11,95 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200">
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-black/50 backdrop-blur">
+      <nav className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-wrap items-center justify-between gap-4 py-4">
           <Link
             to="/"
-            className="text-2xl font-bold tracking-wide text-gray-900 hover:text-gray-600 transition"
+            className="text-lg sm:text-xl font-semibold tracking-[0.3em] uppercase text-white hover:text-white/80 transition"
           >
-            STUDIO STORM
+            Studio Storm
           </Link>
 
-          <div className="flex items-center space-x-8">
+          <div className="flex flex-wrap items-center gap-6 text-xs tracking-[0.2em] uppercase">
             <Link
-              to="/"
-              className="text-sm text-gray-700 hover:text-gray-900 transition"
+              to="/work"
+              className="text-white/80 hover:text-white transition"
             >
-              Home
+              Work
             </Link>
             <Link
-              to="/gallery"
-              className="text-sm text-gray-700 hover:text-gray-900 transition"
+              to="/sports"
+              className="text-white/80 hover:text-white transition"
             >
-              Gallery
+              Sports
             </Link>
             <Link
-              to="/albums"
-              className="text-sm text-gray-700 hover:text-gray-900 transition"
+              to="/services"
+              className="text-white/80 hover:text-white transition"
             >
-              Albums
+              Services
+            </Link>
+            <Link
+              to="/clients"
+              className="text-white/80 hover:text-white transition"
+            >
+              Clients
+            </Link>
+            <Link
+              to="/journal"
+              className="text-white/80 hover:text-white transition"
+            >
+              Journal
             </Link>
             <Link
               to="/about"
-              className="text-sm text-gray-700 hover:text-gray-900 transition"
+              className="text-white/80 hover:text-white transition"
             >
-              Over Ons
+              About
             </Link>
             <Link
               to="/contact"
-              className="text-sm text-gray-700 hover:text-gray-900 transition"
+              className="text-white/80 hover:text-white transition"
             >
               Contact
             </Link>
+          </div>
 
-            {/* Auth Section */}
-            <div className="flex items-center space-x-4 ml-4 pl-4 border-l border-gray-200">
-              {isAuthenticated ? (
-                <>
-                  {isAdmin && (
-                    <Link
-                      to="/admin"
-                      className="text-sm font-medium text-purple-600 hover:text-purple-700 transition"
-                    >
-                      Admin Dashboard
-                    </Link>
-                  )}
-                  {isClient && (
-                    <Link
-                      to="/client/galleries"
-                      className="text-sm font-medium text-blue-600 hover:text-blue-700 transition"
-                    >
-                      Mijn Galerijen
-                    </Link>
-                  )}
-                  <button
-                    onClick={handleLogout}
-                    className="text-sm text-gray-600 hover:text-gray-900 transition"
-                  >
-                    Uitloggen
-                  </button>
-                </>
-              ) : (
-                <>
+          <div className="flex items-center gap-4 text-xs uppercase tracking-[0.2em]">
+            {isAuthenticated ? (
+              <>
+                {isAdmin && (
                   <Link
-                    to="/client/login"
-                    className="text-sm font-medium text-blue-600 hover:text-blue-700 transition"
-                  >
-                    Client Login
-                  </Link>
-                  <Link
-                    to="/admin/login"
-                    className="text-sm font-medium text-purple-600 hover:text-purple-700 transition"
+                    to="/admin"
+                    className="text-white/70 hover:text-white transition"
                   >
                     Admin
                   </Link>
-                </>
-              )}
-            </div>
+                )}
+                {isClient && (
+                  <Link
+                    to="/client/galleries"
+                    className="text-white/70 hover:text-white transition"
+                  >
+                    Client Access
+                  </Link>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="text-white/50 hover:text-white transition"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/client/login"
+                className="border border-white/20 px-3 py-2 text-white/70 hover:text-white hover:border-white/60 transition"
+              >
+                Client Access
+              </Link>
+            )}
           </div>
         </div>
       </nav>

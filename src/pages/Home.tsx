@@ -1,331 +1,201 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  getFeaturedPhotos,
-  getMainAlbums,
-  getOrganizations,
-  getSiteSettings,
-  likePhoto,
-} from "../api";
-import type { Photo, Album, Organization, SiteSettings } from "../types";
+import { useState, useEffect } from "react";
+import { getClients } from "../api";
+import type { Client } from "../types";
+
+const highlights = [
+  {
+    src: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1400&auto=format&fit=crop",
+    title: "Finish Line Burst",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1502904550040-7534597429ae?w=1400&auto=format&fit=crop",
+    title: "Relay Handoff",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=1400&auto=format&fit=crop",
+    title: "Arena Silence",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1400&auto=format&fit=crop",
+    title: "Explosive Jump",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1400&auto=format&fit=crop",
+    title: "Volley Rise",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1400&auto=format&fit=crop",
+    title: "Serve Pressure",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1500563853545-7a87626d2e61?w=1400&auto=format&fit=crop",
+    title: "Grip Fight",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1544717302-de2939b7efcb?w=1400&auto=format&fit=crop",
+    title: "Final Seconds",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1400&auto=format&fit=crop",
+    title: "Victory Break",
+  },
+];
+
+const defaultClients = [
+  "Atletieknieuws",
+  "Agones Media",
+  "Runnerslab Athletics Team",
+  "VAL",
+];
 
 export default function Home() {
-  const [featuredPhotos, setFeaturedPhotos] = useState<Photo[]>([]);
-  const [mainAlbums, setMainAlbums] = useState<Album[]>([]);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [settings, setSettings] = useState<SiteSettings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [likedPhotos, setLikedPhotos] = useState<
-    Map<number, { isLiked: boolean; likes: number }>
-  >(new Map());
-  const [processingLikes, setProcessingLikes] = useState<Set<number>>(
-    new Set(),
-  );
+  const [clients, setClients] = useState<Client[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadClients = async () => {
       try {
-        setLoading(true);
-        const [photos, albums, orgs, siteSettings] = await Promise.all([
-          getFeaturedPhotos(),
-          getMainAlbums(),
-          getOrganizations(),
-          getSiteSettings(),
-        ]);
-        setFeaturedPhotos(photos.slice(0, 6));
-        setMainAlbums(albums);
-        setOrganizations(orgs);
-        setSettings(siteSettings);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load data");
+        const data = await getClients();
+        const featured = data.filter((c: Client) => c.featured);
+        setClients(featured.length > 0 ? featured : data);
+      } catch {
+        // Fallback to default clients if API fails
+        setClients(defaultClients.map((name) => ({ name })));
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
-
-    loadData();
+    void loadClients();
   }, []);
 
-  const handleLike = async (photoId: number, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (processingLikes.has(photoId)) return;
-
-    setProcessingLikes((prev) => new Set([...prev, photoId]));
-
-    const currentState = likedPhotos.get(photoId);
-    const wasLiked = currentState?.isLiked || false;
-    const currentLikes =
-      currentState?.likes ||
-      featuredPhotos.find((p) => p.id === photoId)?.likes ||
-      0;
-
-    // Optimistic update
-    setLikedPhotos((prev) =>
-      new Map(prev).set(photoId, {
-        isLiked: !wasLiked,
-        likes: wasLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1,
-      }),
-    );
-
-    try {
-      const result = await likePhoto(photoId);
-      setLikedPhotos((prev) =>
-        new Map(prev).set(photoId, {
-          isLiked: result.isLiked,
-          likes: result.likes,
-        }),
-      );
-    } catch (err) {
-      console.error("Failed to like photo:", err);
-      // Revert on error
-      setLikedPhotos((prev) =>
-        new Map(prev).set(photoId, {
-          isLiked: wasLiked,
-          likes: currentLikes,
-        }),
-      );
-    } finally {
-      setTimeout(() => {
-        setProcessingLikes((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(photoId);
-          return newSet;
-        });
-      }, 300);
-    }
-  };
-
   return (
-    <div>
-      {/* Hero Section */}
-      <section className="relative h-[70vh] min-h-125 flex items-center justify-center bg-linear-to-br from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage: `url(${settings?.heroImage || "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1600"})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        />
-        <div className="relative z-10 text-center px-4">
-          <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold mb-6 tracking-tight">
-            {settings?.heroTitle || "STUDIO STORM"}
-          </h1>
-          <p className="text-xl md:text-2xl mb-8 text-gray-300 max-w-2xl mx-auto">
-            {settings?.heroSubtitle ||
-              "Atletiekfotografie - vastleggen van snelheid, kracht en emotie"}
+    <div className="bg-[#0b0b0c] text-white">
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1517649763962-0c623066013b?w=1900&auto=format&fit=crop"
+            alt="Iconic sports moment"
+            className="h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-[#0b0b0c]" />
+        </div>
+        <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-28 sm:py-36">
+          <p className="text-xs uppercase tracking-[0.4em] text-white/60">
+            Sports Photography
           </p>
-          <div className="flex gap-4 justify-center flex-wrap">
+          <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl mt-6 leading-tight">
+            Studio Storm captures the split-second intensity of elite sport.
+          </h1>
+          <p className="mt-6 max-w-2xl text-lg text-white/70">
+            Athletics-first. Trusted by clubs, events, and athletes who value
+            precision, timing, and a cinematic point of view.
+          </p>
+          <div className="mt-10 flex flex-wrap gap-4">
             <Link
-              to="/gallery"
-              className="bg-white text-gray-900 px-8 py-3 rounded-lg font-medium hover:bg-gray-100 transition"
+              to="/work"
+              className="bg-[#f0c987] text-black px-6 py-3 text-xs uppercase tracking-[0.3em] hover:bg-[#d8b77a] transition"
             >
-              Bekijk Gallery
+              View Work
             </Link>
             <Link
               to="/contact"
-              className="border-2 border-white text-white px-8 py-3 rounded-lg font-medium hover:bg-white hover:text-gray-900 transition"
+              className="border border-white/40 px-6 py-3 text-xs uppercase tracking-[0.3em] text-white/80 hover:text-white hover:border-white transition"
             >
-              Neem Contact Op
+              Book a Shoot
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Featured Work */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-light text-gray-900 mb-4">
-            {settings?.featuredSectionTitle || "Onze Beste Werk"}
-          </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            {settings?.featuredSectionSubtitle ||
-              "De meest geliefde momenten van sport en actiefotografie"}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {featuredPhotos.length > 0 ? (
-            featuredPhotos.map((photo) => {
-              const photoState = likedPhotos.get(photo.id);
-              const isLiked = photoState?.isLiked || false;
-              const likes = photoState?.likes ?? photo.likes;
-              const isProcessing = processingLikes.has(photo.id);
-
-              return (
-                <Link
-                  key={photo.id}
-                  to={`/photo/${photo.id}`}
-                  className="group relative overflow-hidden rounded-lg aspect-4/3 bg-gray-200"
-                >
-                  <img
-                    src={photo.imageUrl}
-                    alt={photo.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-
-                  {/* Like button */}
-                  <button
-                    type="button"
-                    onClick={(e) => handleLike(photo.id, e)}
-                    disabled={isProcessing}
-                    className={`absolute bottom-3 right-3 px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-1 transition-all duration-200 z-20 ${
-                      isProcessing
-                        ? "opacity-50 cursor-wait"
-                        : isLiked
-                          ? "bg-red-500 text-white hover:bg-red-600"
-                          : "bg-white/90 backdrop-blur-sm text-gray-900 hover:bg-red-100"
-                    }`}
-                    aria-label={isLiked ? "Unlike photo" : "Like photo"}
-                  >
-                    {isProcessing ? "⏳" : isLiked ? "❤️" : "🤍"} {likes}
-                  </button>
-
-                  <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <h3 className="text-white text-xl font-medium mb-2">
-                        {photo.title}
-                      </h3>
-                      <p className="text-gray-200 text-sm">{photo.location}</p>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })
-          ) : loading ? (
-            <p className="col-span-3 text-center text-gray-600">Loading...</p>
-          ) : error ? (
-            <p className="col-span-3 text-center text-red-600">{error}</p>
-          ) : null}
-        </div>
-
-        <div className="text-center">
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-20">
+        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.4em] text-white/50">
+              Selected Highlights
+            </p>
+            <h2 className="font-display text-3xl sm:text-4xl mt-4">
+              A tight edit of our strongest frames.
+            </h2>
+          </div>
           <Link
-            to="/gallery"
-            className="inline-block border-2 border-gray-900 text-gray-900 px-8 py-3 rounded-lg font-medium hover:bg-gray-900 hover:text-white transition"
+            to="/work"
+            className="text-xs uppercase tracking-[0.3em] text-white/60 hover:text-white transition"
           >
-            Bekijk Alle Foto's
+            {"Explore the full edit ->"}
           </Link>
         </div>
-      </section>
 
-      {/* Albums Section */}
-      <section className="bg-gray-50 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-light text-gray-900 mb-4">
-              Onze Albums
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Ontdek onze collecties georganiseerd per sport
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {mainAlbums.map((album) => {
-              // Find cover photo from API data
-              const coverPhoto = featuredPhotos.find(
-                (p) => p.id === album.coverPhotoId,
-              ) || {
-                imageUrl:
-                  "https://via.placeholder.com/800x600?text=" + album.name,
-              };
-              return (
-                <Link
-                  key={album.id}
-                  to={`/albums/${album.slug}`}
-                  className="group relative overflow-hidden rounded-lg aspect-3/4 bg-gray-200"
-                >
-                  <img
-                    src={coverPhoto?.imageUrl}
-                    alt={album.name}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/40 to-transparent">
-                    <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <h3 className="text-white text-2xl font-medium mb-2">
-                        {album.name}
-                      </h3>
-                      <p className="text-gray-200 text-sm mb-2">
-                        {album.description}
-                      </p>
-                      <p className="text-gray-300 text-xs">
-                        {album.photoCount} foto's
-                      </p>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Partners & Organisaties */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-light text-gray-900 mb-4">
-            Samenwerkingen
-          </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Trots om samen te werken met deze geweldige organisaties
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {organizations.map((org) => (
-            <div
-              key={org.id}
-              className="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow text-center"
+        <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {highlights.map((item) => (
+            <figure
+              key={item.title}
+              className="group relative overflow-hidden rounded-2xl bg-black/40"
             >
-              {org.logo && (
-                <img
-                  src={org.logo}
-                  alt={org.name}
-                  className="w-full h-16 object-contain mb-4"
-                />
-              )}
-              <h3 className="text-lg font-medium text-gray-900">
-                {org.website ? (
-                  <a
-                    href={org.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-gray-600 transition"
-                  >
-                    {org.name}
-                  </a>
-                ) : (
-                  org.name
-                )}
-              </h3>
-            </div>
+              <img
+                src={item.src}
+                alt={item.title}
+                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+              <figcaption className="absolute inset-x-0 bottom-0 p-5 text-sm uppercase tracking-[0.3em] text-white/70 bg-gradient-to-t from-black/80 via-black/20 to-transparent">
+                {item.title}
+              </figcaption>
+            </figure>
           ))}
         </div>
       </section>
 
-      {/* Instagram CTA */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="bg-linear-to-br from-purple-600 to-pink-600 rounded-2xl p-12 text-center text-white">
-          <h2 className="text-3xl font-light mb-4">Volg Ons Op Instagram</h2>
-          <p className="text-lg mb-6 text-white/90">
-            Blijf op de hoogte van onze nieuwste werk en achter de schermen
-            content
-          </p>
-          <a
-            href={
-              settings?.instagramUrl ||
-              "https://instagram.com/studiostorm.sports"
-            }
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block bg-white text-purple-600 px-8 py-3 rounded-lg font-medium hover:bg-gray-100 transition"
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-20">
+        <div className="rounded-3xl border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(240,201,135,0.18),_rgba(11,11,12,0.9))] p-10">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.4em] text-white/50">
+                Trusted By
+              </p>
+              <h3 className="font-display text-3xl mt-3">
+                Clubs and media partners
+              </h3>
+            </div>
+            <Link
+              to="/clients"
+              className="text-xs uppercase tracking-[0.3em] text-white/60 hover:text-white transition"
+            >
+              {"View client list ->"}
+            </Link>
+          </div>
+          <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm uppercase tracking-[0.2em] text-white/70">
+            {isLoading ? (
+              <p className="col-span-4 text-center text-white/50">Loading...</p>
+            ) : (
+              clients.map((client) => (
+                <div
+                  key={client.id || client.name}
+                  className="rounded-full border border-white/15 px-4 py-3 text-center"
+                >
+                  {client.name}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-24">
+        <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.4em] text-white/50">
+              Ready to collaborate
+            </p>
+            <h2 className="font-display text-3xl sm:text-4xl mt-4">
+              Let us cover your next event with precision and prestige.
+            </h2>
+          </div>
+          <Link
+            to="/contact"
+            className="bg-white text-black px-6 py-3 text-xs uppercase tracking-[0.3em] hover:bg-[#f0c987] transition"
           >
-            {settings?.instagramHandle || "@studiostorm.sports"}
-          </a>
+            Request Availability
+          </Link>
         </div>
       </section>
     </div>
