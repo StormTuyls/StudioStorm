@@ -416,3 +416,76 @@ export async function likeGalleryPhoto(uniqueUrl: string, photoId: number) {
   }
   return res.json();
 }
+
+// ============== ORGANIZATIONS ADMIN ==============
+
+export async function createOrganization(data: {
+  name: string;
+  logo?: string;
+  website?: string;
+}) {
+  const res = await authFetch(`${API_URL}/admin/organizations`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create organization");
+  return res.json();
+}
+
+export async function updateOrganization(
+  id: number,
+  data: { name: string; logo?: string; website?: string },
+) {
+  const res = await authFetch(`${API_URL}/admin/organizations/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update organization");
+  return res.json();
+}
+
+export async function deleteOrganization(id: number) {
+  const res = await authFetch(`${API_URL}/admin/organizations/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete organization");
+  return res.json();
+}
+
+// ============== SITE SETTINGS ==============
+
+export async function getSiteSettings() {
+  const res = await fetch(`${API_URL}/site-settings`);
+  if (!res.ok) throw new Error("Failed to fetch site settings");
+  return res.json();
+}
+
+export async function updateSiteSettings(data: Record<string, unknown>) {
+  const res = await authFetch(`${API_URL}/admin/site-settings`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update site settings");
+  return res.json();
+}
+
+// ============== ABOUT CONTENT ==============
+
+export async function getAboutContent() {
+  const res = await fetch(`${API_URL}/about-content`);
+  if (!res.ok) throw new Error("Failed to fetch about content");
+  return res.json();
+}
+
+export async function updateAboutContent(data: Record<string, unknown>) {
+  const res = await authFetch(`${API_URL}/admin/about-content`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update about content");
+  return res.json();
+}

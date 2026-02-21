@@ -4,14 +4,16 @@ import {
   getFeaturedPhotos,
   getMainAlbums,
   getOrganizations,
+  getSiteSettings,
   likePhoto,
 } from "../api";
-import type { Photo, Album, Organization } from "../types";
+import type { Photo, Album, Organization, SiteSettings } from "../types";
 
 export default function Home() {
   const [featuredPhotos, setFeaturedPhotos] = useState<Photo[]>([]);
   const [mainAlbums, setMainAlbums] = useState<Album[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [likedPhotos, setLikedPhotos] = useState<
@@ -25,14 +27,16 @@ export default function Home() {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [photos, albums, orgs] = await Promise.all([
+        const [photos, albums, orgs, siteSettings] = await Promise.all([
           getFeaturedPhotos(),
           getMainAlbums(),
           getOrganizations(),
+          getSiteSettings(),
         ]);
         setFeaturedPhotos(photos.slice(0, 6));
         setMainAlbums(albums);
         setOrganizations(orgs);
+        setSettings(siteSettings);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load data");
       } finally {
@@ -101,18 +105,18 @@ export default function Home() {
         <div
           className="absolute inset-0 opacity-20"
           style={{
-            backgroundImage:
-              "url(https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1600)",
+            backgroundImage: `url(${settings?.heroImage || "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1600"})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
         />
         <div className="relative z-10 text-center px-4">
           <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold mb-6 tracking-tight">
-            STUDIO STORM
+            {settings?.heroTitle || "STUDIO STORM"}
           </h1>
           <p className="text-xl md:text-2xl mb-8 text-gray-300 max-w-2xl mx-auto">
-            Atletiekfotografie - vastleggen van snelheid, kracht en emotie
+            {settings?.heroSubtitle ||
+              "Atletiekfotografie - vastleggen van snelheid, kracht en emotie"}
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Link
@@ -135,10 +139,11 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-light text-gray-900 mb-4">
-            Onze Beste Werk
+            {settings?.featuredSectionTitle || "Onze Beste Werk"}
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            De meest geliefde momenten van sport en actiefotografie
+            {settings?.featuredSectionSubtitle ||
+              "De meest geliefde momenten van sport en actiefotografie"}
           </p>
         </div>
 
@@ -276,7 +281,14 @@ export default function Home() {
               key={org.id}
               className="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow text-center"
             >
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {org.logo && (
+                <img
+                  src={org.logo}
+                  alt={org.name}
+                  className="w-full h-16 object-contain mb-4"
+                />
+              )}
+              <h3 className="text-lg font-medium text-gray-900">
                 {org.website ? (
                   <a
                     href={org.website}
@@ -290,7 +302,6 @@ export default function Home() {
                   org.name
                 )}
               </h3>
-              <p className="text-sm text-gray-600">{org.description}</p>
             </div>
           ))}
         </div>
@@ -305,12 +316,15 @@ export default function Home() {
             content
           </p>
           <a
-            href="https://instagram.com/studiostorm.sports"
+            href={
+              settings?.instagramUrl ||
+              "https://instagram.com/studiostorm.sports"
+            }
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block bg-white text-purple-600 px-8 py-3 rounded-lg font-medium hover:bg-gray-100 transition"
           >
-            @studiostorm.sports
+            {settings?.instagramHandle || "@studiostorm.sports"}
           </a>
         </div>
       </section>

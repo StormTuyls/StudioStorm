@@ -43,5 +43,36 @@ export interface Organization {
   name: string;
   logo?: string;
   website?: string;
+}
+
+export interface SiteSettings {
+  id: number;
+  siteName: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  heroImage: string;
+  footerText: string;
+  instagramHandle: string;
+  instagramUrl: string;
+  contactEmail?: string;
+  featuredSectionTitle: string;
+  featuredSectionSubtitle: string;
+}
+
+export interface Specialization {
+  name: string;
+  subtitle: string;
   description: string;
+}
+
+export interface AboutContent {
+  id: number;
+  title: string;
+  image: string;
+  paragraphs: string[];
+  specializations: Specialization[];
+  contactText: string;
+  contactLinkText: string;
+  contactLinkUrl: string;
+  contactSuffix: string;
 }

@@ -1197,6 +1197,199 @@ app.patch(
   },
 );
 
+// ============== ORGANIZATIONS ADMIN ENDPOINTS ==============
+
+// Create organization
+app.post("/api/admin/organizations", authenticateToken, async (req, res) => {
+  try {
+    const { name, logo, website } = req.body;
+
+    // Get max ID
+    const maxOrg = await db
+      .collection("organizations")
+      .find()
+      .sort({ id: -1 })
+      .limit(1)
+      .toArray();
+    const newId = maxOrg.length > 0 ? maxOrg[0].id + 1 : 1;
+
+    const organization = {
+      id: newId,
+      name,
+      logo,
+      website,
+    };
+
+    await db.collection("organizations").insertOne(organization);
+    res.json(organization);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update organization
+app.patch(
+  "/api/admin/organizations/:id",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { name, logo, website } = req.body;
+      const result = await db
+        .collection("organizations")
+        .findOneAndUpdate(
+          { id: Number(req.params.id) },
+          { $set: { name, logo, website } },
+          { returnDocument: "after" },
+        );
+
+      if (!result.value) {
+        return res.status(404).json({ error: "Organization not found" });
+      }
+      res.json(result.value);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+);
+
+// Delete organization
+app.delete(
+  "/api/admin/organizations/:id",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const result = await db
+        .collection("organizations")
+        .deleteOne({ id: Number(req.params.id) });
+
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ error: "Organization not found" });
+      }
+      res.json({ message: "Organization deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+);
+
+// ============== SITE SETTINGS ENDPOINTS ==============
+
+// Get site settings
+app.get("/api/site-settings", async (req, res) => {
+  try {
+    const settings = await db.collection("siteSettings").findOne({ id: 1 });
+    if (!settings) {
+      // Return defaults if none exist
+      return res.json({
+        id: 1,
+        siteName: "STUDIO STORM",
+        heroTitle: "STUDIO STORM",
+        heroSubtitle:
+          "Atletiekfotografie - vastleggen van snelheid, kracht en emotie",
+        heroImage:
+          "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1600",
+        footerText: "Studio Storm. All rights reserved.",
+        instagramHandle: "@studiostorm.sports",
+        instagramUrl: "https://instagram.com/studiostorm.sports",
+        contactEmail: "",
+        featuredSectionTitle: "Onze Beste Werk",
+        featuredSectionSubtitle:
+          "De meest geliefde momenten van sport en actiefotografie",
+      });
+    }
+    res.json(settings);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update site settings (admin only)
+app.patch("/api/admin/site-settings", authenticateToken, async (req, res) => {
+  try {
+    const settings = req.body;
+    const result = await db
+      .collection("siteSettings")
+      .findOneAndUpdate(
+        { id: 1 },
+        { $set: settings },
+        { upsert: true, returnDocument: "after" },
+      );
+
+    res.json(result.value || settings);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============== ABOUT CONTENT ENDPOINTS ==============
+
+// Get about content
+app.get("/api/about-content", async (req, res) => {
+  try {
+    const content = await db.collection("aboutContent").findOne({ id: 1 });
+    if (!content) {
+      // Return defaults
+      return res.json({
+        id: 1,
+        title: "Over Studio Storm",
+        image:
+          "https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?w=400",
+        paragraphs: [
+          "Studio Storm is gespecialiseerd in sportfotografie met een focus op atletiek. We leggen de meest intense en emotionele momenten van sport vast - van de sprintfinish op de piste tot de krachtige smash op de volleybalcourt.",
+          "Met jarenlange ervaring in het fotograferen van diverse atletiekwedstrijden, van lokale veldlopen tot Diamond League meetings, begrijpen we het belang van het juiste moment. We werken met professionele apparatuur en zijn getraind om snel te reageren op de dynamiek van sport.",
+          "Of het nu gaat om een lokale wedstrijd of een groot sportevenement, Studio Storm zorgt ervoor dat jouw belangrijkste momenten worden vastgelegd met de hoogste kwaliteit en oog voor detail. We hebben samengewerkt met organisaties zoals Atletieknieuws, Agones Media, en Runnerslab Athletics Team.",
+        ],
+        specializations: [
+          {
+            name: "Atletiek",
+            subtitle: "Hoofdfocus - alle disciplines",
+            description:
+              "Van veldlopen tot pistewedstrijden, van straatlopen tot Diamond League meetings. We leggen de intensiteit, emotie en schoonheid van atletiek vast.",
+          },
+          {
+            name: "Volleybal",
+            subtitle: "Indoor sportfotografie",
+            description:
+              "Dynamische actie op de court, van lokale competities tot landelijke bekers. Specialisatie in het vastleggen van snelle bewegingen en teamdynamiek.",
+          },
+          {
+            name: "Jiu-Jitsu",
+            subtitle: "Vechtsportfotografie",
+            description:
+              "Krachtige momenten uit de vechtsport, technische precisie en intense gevechten vastgelegd op het moment supreme.",
+          },
+        ],
+        contactText:
+          "Interesse in sportfotografie voor jouw team, club of evenement? Neem contact met ons op via",
+        contactLinkText: "@studiostorm.sports",
+        contactLinkUrl: "https://instagram.com/studiostorm.sports",
+        contactSuffix: "op Instagram of via ons contactformulier.",
+      });
+    }
+    res.json(content);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update about content (admin only)
+app.patch("/api/admin/about-content", authenticateToken, async (req, res) => {
+  try {
+    const content = req.body;
+    const result = await db
+      .collection("aboutContent")
+      .findOneAndUpdate(
+        { id: 1 },
+        { $set: content },
+        { upsert: true, returnDocument: "after" },
+      );
+
+    res.json(result.value || content);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "OK", message: "Server is running" });
