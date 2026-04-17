@@ -16,6 +16,7 @@ import {
 } from "./middleware/auth.js";
 import { upload } from "./middleware/upload.js";
 import { extractExifData } from "./utils/exif.js";
+import { optimizePhotoUpload } from "./utils/optimizeImage.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -715,15 +716,9 @@ app.post(
       const nextId = lastPhoto.length > 0 ? lastPhoto[0].id + 1 : 1;
       console.log(`✅ Next photo ID: ${nextId}`);
 
-      // Build full image URL with server host and port
       const baseUrl = process.env.SERVER_URL || `http://localhost:${PORT}`;
-      const imageUrl = req.file
-        ? `${baseUrl}/uploads/${req.file.filename}`
-        : req.body.imageUrl;
 
-      console.log(`📸 Image URL: ${imageUrl}`);
-
-      // Extract EXIF data if image file was uploaded
+      // Extract EXIF data if image file was uploaded (must run before optimize rewrites the file)
       let extractedMetadata = {
         camera: camera
           ? JSON.parse(camera)
@@ -736,13 +731,16 @@ app.post(
         dateTaken: dateTaken || new Date().toISOString().split("T")[0],
       };
 
+      let imageWidth = 800;
+      let imageHeight = 600;
+      let storedFilename = req.file?.filename;
+
       if (req.file) {
         const filePath = req.file.path;
         console.log(`🔍 Extracting EXIF from: ${filePath}`);
         const exifData = extractExifData(filePath);
         console.log(`📋 EXIF Data:`, exifData);
 
-        // Merge extracted data with user-provided data (user data takes precedence)
         extractedMetadata = {
           camera: camera
             ? JSON.parse(camera)
@@ -760,7 +758,21 @@ app.post(
             exifData.dateTaken ||
             new Date().toISOString().split("T")[0],
         };
+
+        const optimized = await optimizePhotoUpload(filePath);
+        storedFilename = optimized.filename;
+        imageWidth = optimized.width || imageWidth;
+        imageHeight = optimized.height || imageHeight;
+        console.log(
+          `🖼️ Optimized upload → ${storedFilename} (${optimized.size} bytes, ${imageWidth}×${imageHeight})`,
+        );
       }
+
+      const imageUrl = req.file
+        ? `${baseUrl}/uploads/${storedFilename}`
+        : req.body.imageUrl;
+
+      console.log(`📸 Image URL: ${imageUrl}`);
 
       const newPhoto = {
         id: nextId,
@@ -776,8 +788,8 @@ app.post(
         shutterSpeed: extractedMetadata.shutterSpeed,
         focalLength: extractedMetadata.focalLength,
         albumId: albumId ? Number(albumId) : null,
-        width: 800,
-        height: 600,
+        width: imageWidth,
+        height: imageHeight,
         isFeatured: false,
         likes: 0,
         createdAt: new Date(),
@@ -1056,15 +1068,14 @@ app.post(
       const galleryId = Number(req.params.id);
       const { title, description } = req.body;
 
-      // Build full image URL with server host and port
       const baseUrl = process.env.SERVER_URL || `http://localhost:${PORT}`;
-      const imageUrl = req.file
-        ? `${baseUrl}/uploads/${req.file.filename}`
-        : null;
 
-      if (!imageUrl) {
+      if (!req.file) {
         return res.status(400).json({ error: "Image file required" });
       }
+
+      const optimized = await optimizePhotoUpload(req.file.path);
+      const imageUrl = `${baseUrl}/uploads/${optimized.filename}`;
 
       const photoData = {
         id: Date.now(),
@@ -1831,6 +1842,231 @@ app.delete("/api/admin/services/:id", authenticateToken, async (req, res) => {
   }
 });
 
+// ==================== SPORTS ====================
+app.get("/api/sports", async (req, res) => {
+  try {
+    const sportsCollection = db.collection("sports");
+    let sports = await sportsCollection
+      .find({})
+      .sort({ order: 1, title: 1 })
+      .toArray();
+
+    if (sports.length === 0) {
+      const defaults = [
+        {
+          id: 1,
+          title: "Atletiek",
+          slug: "atletiek",
+          summary: "Explosive starts, clean form, raw emotion.",
+          imageUrl:
+            "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=1500&auto=format&fit=crop",
+          order: 1,
+          createdAt: new Date(),
+        },
+        {
+          id: 2,
+          title: "Volleybal",
+          slug: "volleybal",
+          summary: "Vertical movement and teamwork under pressure.",
+          imageUrl:
+            "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1500&auto=format&fit=crop",
+          order: 2,
+          createdAt: new Date(),
+        },
+        {
+          id: 3,
+          title: "Jiu-Jitsu",
+          slug: "jiu-jitsu",
+          summary: "Close-range intensity, captured with clarity.",
+          imageUrl:
+            "https://images.unsplash.com/photo-1500563853545-7a87626d2e61?w=1500&auto=format&fit=crop",
+          order: 3,
+          createdAt: new Date(),
+        },
+      ];
+      await sportsCollection.insertMany(defaults);
+      sports = defaults;
+    }
+
+    res.json(sports);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/admin/sports", authenticateToken, async (req, res) => {
+  try {
+    const { title, slug, summary, imageUrl } = req.body;
+
+    if (!title || !slug) {
+      return res.status(400).json({ error: "Title and slug are required" });
+    }
+
+    const existing = await db.collection("sports").findOne({ slug });
+    if (existing) {
+      return res.status(409).json({ error: "Sport slug already exists" });
+    }
+
+    const order = (await db.collection("sports").countDocuments()) + 1;
+    const newSport = {
+      id: Date.now(),
+      title,
+      slug,
+      summary: summary || "",
+      imageUrl: imageUrl || "",
+      order,
+      createdAt: new Date(),
+    };
+
+    await db.collection("sports").insertOne(newSport);
+    res.status(201).json(newSport);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.patch("/api/admin/sports/:id", authenticateToken, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const updates = req.body;
+
+    delete updates._id;
+
+    await db.collection("sports").updateOne({ id }, { $set: updates });
+    const updatedSport = await db.collection("sports").findOne({ id });
+    res.json(updatedSport);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/admin/sports/:id", authenticateToken, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const result = await db.collection("sports").deleteOne({ id });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: "Sport not found" });
+    }
+
+    res.json({ message: "Sport deleted" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== JOURNAL ====================
+app.get("/api/journal", async (req, res) => {
+  try {
+    const posts = await db
+      .collection("journal")
+      .find({})
+      .sort({ date: -1, createdAt: -1 })
+      .toArray();
+    res.json(posts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/admin/journal", authenticateToken, async (req, res) => {
+  try {
+    const { title, date, summary, body, imageUrl } = req.body;
+    if (!title || !date) {
+      return res.status(400).json({ error: "Title and date are required" });
+    }
+
+    const newPost = {
+      id: Date.now(),
+      title,
+      date,
+      summary: summary || "",
+      body: body || "",
+      imageUrl: imageUrl || "",
+      createdAt: new Date(),
+    };
+
+    await db.collection("journal").insertOne(newPost);
+    res.status(201).json(newPost);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.patch("/api/admin/journal/:id", authenticateToken, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const updates = req.body;
+
+    delete updates._id;
+
+    await db.collection("journal").updateOne({ id }, { $set: updates });
+    const updatedPost = await db.collection("journal").findOne({ id });
+    res.json(updatedPost);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/admin/journal/:id", authenticateToken, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const result = await db.collection("journal").deleteOne({ id });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: "Journal entry not found" });
+    }
+
+    res.json({ message: "Journal entry deleted" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== HOME SETTINGS ====================
+app.get("/api/home-settings", async (req, res) => {
+  try {
+    const settings = await db
+      .collection("homeSettings")
+      .findOne({ id: "home-settings" });
+
+    if (!settings) {
+      return res.status(404).json({ error: "Home settings not found" });
+    }
+
+    res.json(settings);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.patch("/api/admin/home-settings", authenticateToken, async (req, res) => {
+  try {
+    const { heroImageUrl, heroImageTitle, highlights } = req.body;
+
+    const result = await db.collection("homeSettings").findOneAndUpdate(
+      { id: "home-settings" },
+      {
+        $set: {
+          heroImageUrl: heroImageUrl || "",
+          heroImageTitle: heroImageTitle || "",
+          highlights: highlights || [],
+          updatedAt: new Date(),
+        },
+      },
+      { returnDocument: "after" },
+    );
+
+    if (!result.value) {
+      return res.status(404).json({ error: "Home settings not found" });
+    }
+
+    res.json(result.value);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== PORTFOLIO ====================
 app.get("/api/portfolio", async (req, res) => {
   try {
@@ -1858,6 +2094,31 @@ app.post("/api/admin/portfolio", authenticateToken, async (req, res) => {
     };
     await db.collection("portfolio").insertOne(item);
     res.status(201).json(item);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.patch("/api/admin/portfolio/:id", authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    delete updates._id;
+
+    const result = await db
+      .collection("portfolio")
+      .findOneAndUpdate(
+        { id },
+        { $set: { ...updates, updatedAt: new Date() } },
+        { returnDocument: "after" },
+      );
+
+    if (!result.value) {
+      return res.status(404).json({ error: "Portfolio item not found" });
+    }
+
+    res.json(result.value);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
