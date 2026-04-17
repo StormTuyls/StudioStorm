@@ -2,17 +2,52 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { logout, getCurrentUser } from "../api";
 import AdminSidebar, { type AdminTab } from "../components/admin/AdminSidebar";
-import DashboardOverview from "../components/admin/DashboardOverview";
-import AlbumsManager from "../components/admin/AlbumsManager";
-import ClientsManager from "../components/admin/ClientsManager";
-import SiteSettingsManager from "../components/admin/SiteSettingsManager";
-import PortfolioManager from "../components/admin/PortfolioManager";
+import WorkManager from "../components/admin/WorkManager";
+import SportsManager from "../components/admin/SportsManager";
 import ServicesManager from "../components/admin/ServicesManager";
-import SalesManager from "../components/admin/SalesManager";
-import ContentManager from "../components/admin/ContentManager";
+import ClientsManager from "../components/admin/ClientsManager";
+import JournalManager from "../components/admin/JournalManager";
+import AboutContentManager from "../components/admin/AboutContentManager";
+import ClientGalleriesManager from "../components/admin/ClientGalleriesManager";
+
+const TAB_META: Record<AdminTab, { title: string; description: string }> = {
+  work: {
+    title: "Work",
+    description:
+      "Add and curate portfolio work, plus manage the full image library.",
+  },
+  sports: {
+    title: "Sports",
+    description: "Add or remove sports and organize events by season.",
+  },
+  services: {
+    title: "Services",
+    description: "Manage services, pricing, and visibility.",
+  },
+  clients: {
+    title: "Clients",
+    description: "Add clients and track key statistics.",
+  },
+  journal: {
+    title: "Journal",
+    description: "Publish journal posts with images and text.",
+  },
+  about: {
+    title: "About",
+    description: "Update the About page content and sections.",
+  },
+  contact: {
+    title: "Contact",
+    description: "No configuration required for the contact page.",
+  },
+  galleries: {
+    title: "Personal Galleries",
+    description: "Create galleries and upload images for clients.",
+  },
+};
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
+  const [activeTab, setActiveTab] = useState<AdminTab>("work");
   const [user, setUser] = useState<{ username: string } | null>(null);
   const navigate = useNavigate();
 
@@ -45,9 +80,10 @@ export default function AdminDashboard() {
     );
   }
 
+  const tabMeta = TAB_META[activeTab];
+
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
-      {/* Sidebar */}
+    <div className="min-h-screen bg-gray-50 md:flex">
       <AdminSidebar
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -55,83 +91,53 @@ export default function AdminDashboard() {
         username={user.username}
       />
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Dashboard Tab */}
-          {activeTab === "dashboard" && (
-            <DashboardOverview onNavigate={setActiveTab} />
-          )}
-
-          {/* Events Tab */}
-          {activeTab === "events" && (
-            <div>
-              <h1 className="text-4xl font-light text-gray-900 mb-8">Events</h1>
-              <AlbumsManager />
-            </div>
-          )}
-
-          {/* Portfolio Tab */}
-          {activeTab === "portfolio" && (
-            <div>
-              <h1 className="text-4xl font-light text-gray-900 mb-8">
-                Portfolio
-              </h1>
-              <PortfolioManager />
-            </div>
-          )}
-
-          {/* Services Tab */}
-          {activeTab === "services" && (
-            <div>
-              <h1 className="text-4xl font-light text-gray-900 mb-8">
-                Services
-              </h1>
-              <ServicesManager />
-            </div>
-          )}
-
-          {/* Clients Tab */}
-          {activeTab === "clients" && (
-            <div>
-              <h1 className="text-4xl font-light text-gray-900 mb-8">
-                Clients
-              </h1>
-              <ClientsManager />
-            </div>
-          )}
-
-          {/* Content Tab */}
-          {activeTab === "content" && <ContentManager />}
-
-          {/* Sales Tab */}
-          {activeTab === "sales" && (
-            <div>
-              <h1 className="text-4xl font-light text-gray-900 mb-8">
-                Sales & Revenue
-              </h1>
-              <SalesManager />
-            </div>
-          )}
-
-          {/* Settings Tab */}
-          {activeTab === "settings" && (
-            <div>
-              <h1 className="text-4xl font-light text-gray-900 mb-8">
-                Settings
-              </h1>
-              <div className="space-y-8">
-                <div>
-                  <h2 className="text-xl font-light text-gray-900 mb-4">
-                    Site Settings
-                  </h2>
-                  <SiteSettingsManager />
-                </div>
+      <div className="flex-1">
+        <header className="bg-white border-b border-gray-200">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em] text-gray-400">
+                  Admin
+                </p>
+                <h1 className="text-3xl font-light text-gray-900">
+                  {tabMeta.title}
+                </h1>
+                <p className="text-sm text-gray-600 mt-1">
+                  {tabMeta.description}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs uppercase tracking-[0.2em] text-gray-400">
+                  Signed in
+                </p>
+                <p className="text-sm font-medium text-gray-800">
+                  {user.username}
+                </p>
               </div>
             </div>
+          </div>
+        </header>
+
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {activeTab === "work" && <WorkManager />}
+          {activeTab === "sports" && <SportsManager />}
+          {activeTab === "services" && <ServicesManager />}
+          {activeTab === "clients" && <ClientsManager />}
+          {activeTab === "journal" && <JournalManager />}
+          {activeTab === "about" && <AboutContentManager />}
+          {activeTab === "contact" && (
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <h2 className="text-xl font-medium text-gray-900">
+                Contact Page
+              </h2>
+              <p className="text-sm text-gray-600 mt-2">
+                No management controls are required for the contact page.
+              </p>
+            </div>
           )}
-        </div>
-      </main>
+          {activeTab === "galleries" && <ClientGalleriesManager />}
+        </main>
+      </div>
     </div>
   );
 }

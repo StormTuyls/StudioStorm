@@ -1,30 +1,141 @@
-import { useState, useEffect } from "react";
-import type { PortfolioItem, Photo } from "../../types";
+import { useState, useEffect, useMemo } from "react";
+import {
+  addToPortfolio,
+  getPhotos,
+  getPortfolio,
+  getSports,
+  removeFromPortfolio,
+  updatePortfolioItem,
+} from "../../api";
+import type { PortfolioItem, Photo, Sport } from "../../types";
 
-// TODO: Wire to actual API endpoints
+const fallbackSports: Sport[] = [
+  { id: 1, title: "Atletiek", slug: "atletiek" },
+  { id: 2, title: "Volleybal", slug: "volleybal" },
+  { id: 3, title: "Jiu-Jitsu", slug: "jiu-jitsu" },
+];
+
+const normalizePortfolioSport = (value: string) => {
+  if (value === "athletics") return "atletiek";
+  if (value === "volleyball") return "volleybal";
+  return value;
+};
 export default function PortfolioManager() {
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
   const [availablePhotos, setAvailablePhotos] = useState<Photo[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedSport, setSelectedSport] = useState<
-    "athletics" | "volleyball" | "jiu-jitsu"
-  >("athletics");
+  const [sports, setSports] = useState<Sport[]>(fallbackSports);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedSport, setSelectedSport] = useState("atletiek");
+  const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
+  const [editCaption, setEditCaption] = useState("");
 
   useEffect(() => {
-    // TODO: Fetch portfolio items and available photos
-    setIsLoading(true);
-    // Placeholder - will be replaced with API call
-    setIsLoading(false);
+    const loadData = async () => {
+      try {
+        const [portfolioData, photosData, sportsData] = await Promise.all([
+          getPortfolio(),
+          getPhotos(),
+          getSports(),
+        ]);
+        setPortfolioItems(portfolioData);
+        setAvailablePhotos(photosData);
+        if (sportsData.length > 0) {
+          setSports(sportsData);
+          setSelectedSport(sportsData[0].slug);
+        }
+        setError(null);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to load portfolio",
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void loadData();
   }, []);
 
-  const handleAddPhoto = (photo: Photo) => {
-    // TODO: Add photo to portfolio
-    console.log("Adding photo to portfolio:", photo);
+  const photosById = useMemo(() => {
+    const map = new Map<string, Photo>();
+    availablePhotos.forEach((photo) => {
+      if (photo.id) {
+        map.set(String(photo.id), photo);
+      }
+    });
+    return map;
+  }, [availablePhotos]);
+
+  const handleAddPhoto = async (photo: Photo) => {
+    if (!photo.id) return;
+    setError(null);
+
+    try {
+      const created = await addToPortfolio({
+        photoId: String(photo.id),
+        sport: selectedSport,
+      });
+      setPortfolioItems((prev) => [...prev, created]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add photo");
+    }
   };
 
-  const handleRemove = (itemId: string) => {
-    // TODO: Delete from portfolio
-    console.log("Removing portfolio item:", itemId);
+  const handleRemove = async (itemId: string | undefined) => {
+    if (!itemId) return;
+    setError(null);
+
+    try {
+      await removeFromPortfolio(itemId);
+      setPortfolioItems((prev) => prev.filter((item) => item.id !== itemId));
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to remove portfolio item",
+      );
+    }
+  };
+
+  const handleStartEdit = (item: PortfolioItem) => {
+    setEditingItem(item);
+    setEditCaption(item.caption || "");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingItem?.id) return;
+    setError(null);
+
+    try {
+      const updated = await updatePortfolioItem(editingItem.id, {
+        caption: editCaption.trim(),
+      });
+      setPortfolioItems((prev) =>
+        prev.map((item) => (item.id === editingItem.id ? updated : item)),
+      );
+      setEditingItem(null);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to update portfolio item",
+      );
+    }
+  };
+
+  const handleToggleFeatured = async (item: PortfolioItem) => {
+    if (!item.id) return;
+    setError(null);
+
+    try {
+      const updated = await updatePortfolioItem(item.id, {
+        isFeatured: !item.isFeatured,
+      });
+      setPortfolioItems((prev) =>
+        prev.map((prevItem) => (prevItem.id === item.id ? updated : prevItem)),
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to update portfolio item",
+      );
+    }
   };
 
   const handleReorder = (fromIndex: number, toIndex: number) => {
@@ -44,20 +155,26 @@ export default function PortfolioManager() {
     <div className="space-y-8">
       {/* Sport Tabs */}
       <div className="flex gap-2 border-b border-gray-200">
-        {(["athletics", "volleyball", "jiu-jitsu"] as const).map((sport) => (
+        {sports.map((sport) => (
           <button
-            key={sport}
-            onClick={() => setSelectedSport(sport)}
+            key={sport.slug}
+            onClick={() => setSelectedSport(sport.slug)}
             className={`px-4 py-2 border-b-2 capitalize font-medium text-sm transition ${
-              selectedSport === sport
+              selectedSport === sport.slug
                 ? "border-gray-900 text-gray-900"
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           >
-            {sport}
+            {sport.title}
           </button>
         ))}
       </div>
+
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700">
+          {error}
+        </div>
+      )}
 
       {/* Current Portfolio for Sport */}
       <div>
@@ -66,7 +183,9 @@ export default function PortfolioManager() {
         </h2>
         <div className="space-y-2">
           {portfolioItems
-            .filter((item) => item.sport === selectedSport)
+            .filter(
+              (item) => normalizePortfolioSport(item.sport) === selectedSport,
+            )
             .map((item, idx) => (
               <div
                 key={item.id}
@@ -85,11 +204,20 @@ export default function PortfolioManager() {
                     className="w-20 h-20 object-cover rounded"
                   />
                 )}
+                {!item.photo && photosById.get(String(item.photoId)) && (
+                  <img
+                    src={photosById.get(String(item.photoId))?.imageUrl}
+                    alt={photosById.get(String(item.photoId))?.title}
+                    className="w-20 h-20 object-cover rounded"
+                  />
+                )}
 
                 {/* Info */}
                 <div className="flex-1">
                   <h3 className="font-medium text-gray-900">
-                    {item.photo?.title}
+                    {item.photo?.title ||
+                      photosById.get(String(item.photoId))?.title ||
+                      "Untitled"}
                   </h3>
                   {item.caption && (
                     <p className="text-sm text-gray-500 mt-1">{item.caption}</p>
@@ -97,12 +225,31 @@ export default function PortfolioManager() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2">
-                  <button className="text-sm px-3 py-1 border rounded hover:bg-gray-50">
+                <div className="flex gap-2 items-center">
+                  {item.isFeatured && (
+                    <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded">
+                      ⭐ Featured
+                    </span>
+                  )}
+                  <button
+                    onClick={() => handleToggleFeatured(item)}
+                    className="text-sm px-3 py-1 border rounded hover:bg-gray-50"
+                    title={
+                      item.isFeatured
+                        ? "Remove from featured"
+                        : "Set as featured"
+                    }
+                  >
+                    {item.isFeatured ? "Unfeature" : "Feature"}
+                  </button>
+                  <button
+                    onClick={() => handleStartEdit(item)}
+                    className="text-sm px-3 py-1 border rounded hover:bg-gray-50"
+                  >
                     Edit
                   </button>
                   <button
-                    onClick={() => handleRemove(item.id!)}
+                    onClick={() => handleRemove(item.id)}
                     className="text-sm px-3 py-1 border border-red-200 text-red-700 rounded hover:bg-red-50"
                   >
                     Remove
@@ -111,13 +258,50 @@ export default function PortfolioManager() {
               </div>
             ))}
         </div>
-        {portfolioItems.filter((item) => item.sport === selectedSport)
-          .length === 0 && (
+        {portfolioItems.filter(
+          (item) => normalizePortfolioSport(item.sport) === selectedSport,
+        ).length === 0 && (
           <p className="text-center py-8 text-gray-500">
             No images selected for {selectedSport} portfolio yet.
           </p>
         )}
       </div>
+
+      {editingItem && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 space-y-4">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">
+                Edit Caption
+              </h3>
+              <p className="text-sm text-gray-500">
+                Update the caption shown with this portfolio image.
+              </p>
+            </div>
+            <textarea
+              value={editCaption}
+              onChange={(e) => setEditCaption(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
+              placeholder="Add a short caption..."
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveEdit}
+                className="flex-1 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setEditingItem(null)}
+                className="flex-1 px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Photos from Events */}
       <div>

@@ -1,6 +1,9 @@
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { getPhotos, getPortfolio, getSports } from "../api";
+import type { Photo, PortfolioItem, Sport } from "../types";
 
-const workSportContent: Record<
+const fallbackContent: Record<
   string,
   {
     title: string;
@@ -43,9 +46,65 @@ const workSportContent: Record<
   },
 };
 
+const normalizePortfolioSport = (value: string) => {
+  if (value === "athletics") return "atletiek";
+  if (value === "volleyball") return "volleybal";
+  return value;
+};
+
 export default function WorkSport() {
   const { sport } = useParams();
-  const content = sport ? workSportContent[sport] : null;
+  const [sports, setSports] = useState<Sport[]>([]);
+  const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [sportsData, portfolioData, photosData] = await Promise.all([
+          getSports(),
+          getPortfolio(),
+          getPhotos(),
+        ]);
+        setSports(sportsData);
+        setPortfolio(portfolioData);
+        setPhotos(photosData);
+        setLoadFailed(false);
+      } catch {
+        setSports([]);
+        setPortfolio([]);
+        setPhotos([]);
+        setLoadFailed(true);
+      }
+    };
+
+    void loadData();
+  }, []);
+
+  const content = useMemo(() => {
+    if (!sport) return null;
+    const fallback = loadFailed ? fallbackContent[sport] : undefined;
+    const matched = sports.find((entry) => entry.slug === sport);
+    if (!matched) return fallback || null;
+
+    const photoIds = portfolio
+      .filter((item) => normalizePortfolioSport(item.sport) === matched.slug)
+      .map((item) => item.photoId);
+    const images = photoIds
+      .map((id) => photos.find((photo) => String(photo.id) === id))
+      .filter((photo): photo is Photo => Boolean(photo))
+      .map((photo) => photo.imageUrl);
+
+    return {
+      title: matched.title,
+      description:
+        matched.summary ||
+        fallback?.description ||
+        "Curated highlights that reinforce performance and presence.",
+      images: images.length > 0 ? images : fallback?.images || [],
+    };
+  }, [sport, sports, portfolio, photos]);
 
   if (!content) {
     return (
@@ -77,20 +136,26 @@ export default function WorkSport() {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-24">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {content.images.map((src, index) => (
-            <div
-              key={`${src}-${index}`}
-              className="overflow-hidden rounded-2xl bg-black/40"
-            >
-              <img
-                src={src}
-                alt={content.title}
-                className="h-full w-full object-cover"
-              />
-            </div>
-          ))}
-        </div>
+        {content.images.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-black/40 p-8 text-white/70">
+            No curated images yet. Add portfolio items in the admin panel.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {content.images.map((src, index) => (
+              <div
+                key={`${src}-${index}`}
+                className="overflow-hidden rounded-2xl bg-black/40"
+              >
+                <img
+                  src={src}
+                  alt={content.title}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

@@ -88,16 +88,16 @@ export default function DashboardOverview({ onNavigate }: DashboardProps) {
         <h2 className="text-xl font-light text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <QuickActionCard
-            label="Upload Event"
-            description="Create new event and upload photos"
+            label="Add Work"
+            description="Curate portfolio and upload images"
             icon="📤"
-            onClick={() => onNavigate("events")}
+            onClick={() => onNavigate("work")}
           />
           <QuickActionCard
-            label="Create Gallery"
-            description="Share event with client"
+            label="Add Sport"
+            description="Manage sports and events"
             icon="🎁"
-            onClick={() => onNavigate("events")}
+            onClick={() => onNavigate("sports")}
           />
           <QuickActionCard
             label="Add Client"
@@ -106,10 +106,10 @@ export default function DashboardOverview({ onNavigate }: DashboardProps) {
             onClick={() => onNavigate("clients")}
           />
           <QuickActionCard
-            label="Edit Homepage"
-            description="Update brand content"
+            label="New Journal"
+            description="Publish a journal update"
             icon="🏠"
-            onClick={() => onNavigate("content")}
+            onClick={() => onNavigate("journal")}
           />
         </div>
       </div>

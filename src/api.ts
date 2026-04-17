@@ -709,6 +709,105 @@ export async function deleteService(id: string) {
   return res.json();
 }
 
+// ============== SPORTS ==============
+export async function getSports() {
+  const res = await fetch(`${API_URL}/sports`);
+  if (!res.ok) throw new Error("Failed to fetch sports");
+  return res.json();
+}
+
+export async function createSport(data: {
+  title: string;
+  slug: string;
+  summary?: string;
+  imageUrl?: string;
+}) {
+  const res = await authFetch(`${API_URL}/admin/sports`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create sport");
+  return res.json();
+}
+
+export async function updateSport(
+  id: number,
+  updates: Partial<{
+    title: string;
+    slug: string;
+    summary: string;
+    imageUrl: string;
+    order: number;
+  }>,
+) {
+  const res = await authFetch(`${API_URL}/admin/sports/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) throw new Error("Failed to update sport");
+  return res.json();
+}
+
+export async function deleteSport(id: number) {
+  const res = await authFetch(`${API_URL}/admin/sports/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete sport");
+  return res.json();
+}
+
+// ============== JOURNAL ==============
+export async function getJournalPosts() {
+  const res = await fetch(`${API_URL}/journal`);
+  if (!res.ok) throw new Error("Failed to fetch journal posts");
+  return res.json();
+}
+
+export async function createJournalPost(data: {
+  title: string;
+  date: string;
+  summary?: string;
+  body?: string;
+  imageUrl?: string;
+}) {
+  const res = await authFetch(`${API_URL}/admin/journal`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create journal entry");
+  return res.json();
+}
+
+export async function updateJournalPost(
+  id: number,
+  updates: Partial<{
+    title: string;
+    date: string;
+    summary: string;
+    body: string;
+    imageUrl: string;
+  }>,
+) {
+  const res = await authFetch(`${API_URL}/admin/journal/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) throw new Error("Failed to update journal entry");
+  return res.json();
+}
+
+export async function deleteJournalPost(id: number) {
+  const res = await authFetch(`${API_URL}/admin/journal/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete journal entry");
+  return res.json();
+}
+
 // ============== PORTFOLIO ==============
 
 export async function getPortfolio() {
@@ -732,6 +831,24 @@ export async function removeFromPortfolio(id: string) {
     method: "DELETE",
   });
   if (!res.ok) throw new Error("Failed to remove from portfolio");
+  return res.json();
+}
+
+export async function updatePortfolioItem(
+  id: string,
+  updates: Partial<{
+    caption: string;
+    sport: string;
+    order: number;
+    isFeatured: boolean;
+  }>,
+) {
+  const res = await authFetch(`${API_URL}/admin/portfolio/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) throw new Error("Failed to update portfolio item");
   return res.json();
 }
 
@@ -761,5 +878,32 @@ export async function updateContentPage(
 export async function getSalesMetrics() {
   const res = await authFetch(`${API_URL}/admin/sales/metrics`);
   if (!res.ok) throw new Error("Failed to fetch sales metrics");
+  return res.json();
+}
+
+// ============== HOME SETTINGS ==============
+
+export async function getHomeSettings() {
+  const res = await fetch(`${API_URL}/home-settings`);
+  if (!res.ok) throw new Error("Failed to fetch home settings");
+  return res.json();
+}
+
+export async function updateHomeSettings(data: {
+  heroImageUrl?: string;
+  heroImageTitle?: string;
+  highlights?: Array<{
+    id: string;
+    title: string;
+    imageUrl: string;
+    order: number;
+  }>;
+}) {
+  const res = await authFetch(`${API_URL}/admin/home-settings`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update home settings");
   return res.json();
 }
