@@ -57,6 +57,7 @@ export interface PortfolioItem {
   photo?: Photo;
   sport: "athletics" | "volleyball" | "jiu-jitsu";
   caption?: string;
+  isFeatured?: boolean;
   order?: number;
   createdAt?: Date;
 }
@@ -77,10 +78,33 @@ export interface Service {
   createdAt?: Date;
 }
 
+// ==================== SPORTS ====================
+export interface Sport {
+  id?: number;
+  title: string;
+  slug: string;
+  summary?: string;
+  imageUrl?: string;
+  order?: number;
+  createdAt?: Date;
+}
+
+// ==================== JOURNAL ====================
+export interface JournalPost {
+  id?: number;
+  title: string;
+  date: string;
+  summary?: string;
+  body?: string;
+  imageUrl?: string;
+  createdAt?: Date;
+}
+
 // ==================== CLIENTS (RELATIONSHIP TRACKING) ====================
 export interface Client {
   id?: string;
   name: string;
+  clientType?: "organization" | "athlete";
   contactPerson?: string;
   email?: string;
   phone?: string;

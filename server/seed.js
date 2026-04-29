@@ -601,88 +601,105 @@ const updatedAlbumsData = albumsData.map((album) => ({
   status: "published",
 }));
 
-// Services data
+// Services data (from public site copy)
 const servicesData = [
   {
-    id: "svc-1",
-    name: "Event Photography Package",
-    description:
-      "Complete coverage of your athletic event with professional editing",
+    id: "svc-private-athlete",
+    name: "Private Athlete",
+    description: "Personal branding for elite competitors.",
     sport: "athletics",
     whatsIncluded: [
-      "Full event coverage (4-8 hours)",
-      "500+ photos edited",
-      "Online gallery",
-      "30-day access",
+      "Pre-shoot planning call",
+      "1.5 hour focused session",
+      "20 curated high-res images",
+      "Custom color grading",
     ],
-    startingPrice: 500,
+    startingPrice: 600,
     deliverables: [
-      "Digital files (RAW + JPEG)",
-      "4K video highlights",
-      "Photo book option",
+      "Personal branding + sponsor kits",
+      "Web + social delivery",
+      "High-res download",
     ],
-    ctaLabel: "Book Event Coverage",
+    ctaLabel: "Request Availability",
     ctaUrl: "/contact",
     isActive: true,
     displayOrder: 1,
     createdAt: new Date(),
   },
   {
-    id: "svc-2",
-    name: "Team Portrait Session",
-    description: "Professional team photos for athletes and groups",
-    sport: "athletics",
+    id: "svc-team-media-day",
+    name: "Team Media Day",
+    description: "Cohesive visuals for clubs and federations.",
+    sport: "volleyball",
     whatsIncluded: [
-      "1-2 hour session",
-      "Outdoor or studio location",
-      "50+ edited photos",
+      "On-location studio setup",
+      "Individual athlete portraits",
+      "Team and group visuals",
+      "Social-ready cutdowns",
     ],
-    startingPrice: 200,
+    startingPrice: 1800,
     deliverables: [
-      "Digital files",
-      "Social media ready formats",
-      "Unlimited usage rights",
+      "Club media + sponsor assets",
+      "Press-ready cutdowns",
+      "High-res download",
     ],
-    ctaLabel: "Book Portraits",
+    ctaLabel: "Request Availability",
     ctaUrl: "/contact",
     isActive: true,
     displayOrder: 2,
     createdAt: new Date(),
   },
   {
-    id: "svc-3",
-    name: "Volleyball Match Coverage",
-    description: "Specialized photography for indoor volleyball competitions",
-    sport: "volleyball",
+    id: "svc-competition-coverage",
+    name: "Competition Coverage",
+    description: "Full-event storytelling for meets and tournaments.",
+    sport: "athletics",
     whatsIncluded: [
-      "Complete match coverage",
-      "200+ edited photos",
-      "Instant online gallery",
+      "Full-event coverage",
+      "Highlight edit + live selects",
+      "Delivery by event + discipline",
+      "Optional on-site upload",
     ],
-    startingPrice: 350,
-    deliverables: ["Digital files", "Video highlights reel"],
-    ctaLabel: "Capture Your Match",
+    startingPrice: 2400,
+    deliverables: ["Event marketing + press", "Sponsor-ready delivery"],
+    ctaLabel: "Request Availability",
     ctaUrl: "/contact",
     isActive: true,
     displayOrder: 3,
     createdAt: new Date(),
   },
+];
+
+// Sports data (from public site)
+const sportsData = [
   {
-    id: "svc-4",
-    name: "Jiu-Jitsu Tournament Shoot",
-    description: "Detailed coverage of jiu-jitsu competitions and tournaments",
-    sport: "jiu-jitsu",
-    whatsIncluded: [
-      "Full tournament coverage",
-      "Individual match photos",
-      "Athlete results sheet",
-    ],
-    startingPrice: 400,
-    deliverables: ["Digital files", "Social media package"],
-    ctaLabel: "Book Tournament",
-    ctaUrl: "/contact",
-    isActive: true,
-    displayOrder: 4,
+    id: 1,
+    title: "Atletiek",
+    slug: "atletiek",
+    summary: "Explosive starts, clean form, raw emotion.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=1500&auto=format&fit=crop",
+    order: 1,
+    createdAt: new Date(),
+  },
+  {
+    id: 2,
+    title: "Volleybal",
+    slug: "volleybal",
+    summary: "Vertical movement and teamwork under pressure.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1500&auto=format&fit=crop",
+    order: 2,
+    createdAt: new Date(),
+  },
+  {
+    id: 3,
+    title: "Jiu-Jitsu",
+    slug: "jiu-jitsu",
+    summary: "Close-range intensity, captured with clarity.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1500563853545-7a87626d2e61?w=1500&auto=format&fit=crop",
+    order: 3,
     createdAt: new Date(),
   },
 ];
@@ -692,33 +709,121 @@ const portfolioData = [
   {
     id: "port-1",
     photoId: 1,
-    sport: "athletics",
+    sport: "atletiek",
     caption: "Sprint finish at Belgian Championships",
     order: 1,
+    isFeatured: true,
     createdAt: new Date(),
   },
   {
     id: "port-2",
     photoId: 2,
-    sport: "athletics",
+    sport: "atletiek",
     caption: "Cross-country action shot",
     order: 2,
+    isFeatured: false,
     createdAt: new Date(),
   },
   {
     id: "port-3",
     photoId: 4,
-    sport: "athletics",
+    sport: "atletiek",
     caption: "Victory moment",
     order: 3,
+    isFeatured: false,
     createdAt: new Date(),
   },
   {
     id: "port-4",
-    photoId: 7,
-    sport: "athletics",
-    caption: "Street race finish line",
+    photoId: 13,
+    sport: "volleybal",
+    caption: "Powerful smash sequence",
     order: 4,
+    isFeatured: true,
+    createdAt: new Date(),
+  },
+  {
+    id: "port-5",
+    photoId: 15,
+    sport: "volleybal",
+    caption: "Defensive dive highlight",
+    order: 5,
+    isFeatured: false,
+    createdAt: new Date(),
+  },
+  {
+    id: "port-6",
+    photoId: 17,
+    sport: "jiu-jitsu",
+    caption: "Grip exchange under pressure",
+    order: 6,
+    isFeatured: true,
+    createdAt: new Date(),
+  },
+];
+
+// About content data (from public site)
+const aboutContentData = {
+  id: 1,
+  title: "Studio Storm is built on athletics-first storytelling.",
+  image:
+    "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1200&auto=format&fit=crop",
+  paragraphs: [
+    "We focus on the edge of performance: the calm before the gun, the drive phase, the finish, and the moments in between. Our work is trusted by clubs and media partners who want clarity and prestige without the noise.",
+    "With a primary focus on athletics, and additional coverage in volleyball and jiu-jitsu, we create imagery that feels editorial and timeless while staying true to the sport.",
+    "Studio Storm partners with Atletieknieuws, Agones Media, Runnerslab Athletics Team, and VAL, delivering consistent coverage across seasons.",
+  ],
+  specializations: [
+    {
+      name: "Focus",
+      subtitle: "Athletics-first.",
+      description: "Speed, precision, and the emotional finish.",
+    },
+    {
+      name: "Style",
+      subtitle: "Clean and cinematic.",
+      description: "Minimal UI, strong typography, and generous spacing.",
+    },
+    {
+      name: "Delivery",
+      subtitle: "Fast, curated edits.",
+      description: "Organized and ready for media or sponsors.",
+    },
+  ],
+  contactText: "Interesse in sportfotografie? Neem contact op via",
+  contactLinkText: "@studiostorm.sports",
+  contactLinkUrl: "https://instagram.com/studiostorm.sports",
+  contactSuffix: "op Instagram of via ons contactformulier.",
+  updatedAt: new Date(),
+};
+
+// Journal posts data (from public site)
+const journalData = [
+  {
+    id: 1,
+    title: "BK Veldlopen 2026 - Highlights",
+    date: "2026-02",
+    summary: "A focused selection of the most decisive frames from the course.",
+    body: "",
+    imageUrl: "",
+    createdAt: new Date(),
+  },
+  {
+    id: 2,
+    title: "How to Prepare for Competition Photos",
+    date: "2026-01",
+    summary: "What athletes and clubs can do to elevate event coverage.",
+    body: "",
+    imageUrl: "",
+    createdAt: new Date(),
+  },
+  {
+    id: 3,
+    title: "Capturing Finals Under Pressure",
+    date: "2025-12",
+    summary: "Timing, positioning, and calm execution when everything is on.",
+    body: "",
+    imageUrl: "",
     createdAt: new Date(),
   },
 ];
@@ -833,11 +938,87 @@ const contentPagesData = [
   },
 ];
 
+// Home settings data (hero image & highlights gallery)
+const homeSettingsData = {
+  id: "home-settings",
+  heroImageUrl:
+    "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=1900&auto=format&fit=crop",
+  heroImageTitle: "Iconic sports moment",
+  highlights: [
+    {
+      id: "hl-1",
+      title: "Finish Line Burst",
+      imageUrl:
+        "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1400&auto=format&fit=crop",
+      order: 1,
+    },
+    {
+      id: "hl-2",
+      title: "Relay Handoff",
+      imageUrl:
+        "https://images.unsplash.com/photo-1502904550040-7534597429ae?w=1400&auto=format&fit=crop",
+      order: 2,
+    },
+    {
+      id: "hl-3",
+      title: "Arena Silence",
+      imageUrl:
+        "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=1400&auto=format&fit=crop",
+      order: 3,
+    },
+    {
+      id: "hl-4",
+      title: "Explosive Jump",
+      imageUrl:
+        "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1400&auto=format&fit=crop",
+      order: 4,
+    },
+    {
+      id: "hl-5",
+      title: "Volley Rise",
+      imageUrl:
+        "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1400&auto=format&fit=crop",
+      order: 5,
+    },
+    {
+      id: "hl-6",
+      title: "Serve Pressure",
+      imageUrl:
+        "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1400&auto=format&fit=crop",
+      order: 6,
+    },
+    {
+      id: "hl-7",
+      title: "Grip Fight",
+      imageUrl:
+        "https://images.unsplash.com/photo-1500563853545-7a87626d2e61?w=1400&auto=format&fit=crop",
+      order: 7,
+    },
+    {
+      id: "hl-8",
+      title: "Final Seconds",
+      imageUrl:
+        "https://images.unsplash.com/photo-1544717302-de2939b7efcb?w=1400&auto=format&fit=crop",
+      order: 8,
+    },
+    {
+      id: "hl-9",
+      title: "Victory Break",
+      imageUrl:
+        "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1400&auto=format&fit=crop",
+      order: 9,
+    },
+  ],
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
 // Clients data
 const clientsData = [
   {
     id: "client-1",
     name: "Atletieknieuws",
+    clientType: "organization",
     contactPerson: "Jan Smeets",
     email: "contact@atletieknieuws.be",
     phone: "+32 123 456 789",
@@ -852,6 +1033,7 @@ const clientsData = [
   {
     id: "client-2",
     name: "Agones Media",
+    clientType: "organization",
     contactPerson: "Sophie Dupont",
     email: "booking@agonesmedia.com",
     phone: "+32 987 654 321",
@@ -866,6 +1048,7 @@ const clientsData = [
   {
     id: "client-3",
     name: "Runnerslab Athletics Team",
+    clientType: "organization",
     contactPerson: "Marco Russo",
     email: "info@runnerslab.be",
     phone: "+32 456 789 012",
@@ -880,6 +1063,7 @@ const clientsData = [
   {
     id: "client-4",
     name: "VAL - Vlaamse Atletiekliga",
+    clientType: "organization",
     contactPerson: "Kris Van den Berg",
     email: "fotografie@val.be",
     phone: "+32 321 654 987",
@@ -888,6 +1072,34 @@ const clientsData = [
     totalRevenue: 8600,
     featured: true,
     notes: "Official athletics league, recurring events",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "client-5",
+    name: "Elena Verbeek",
+    clientType: "athlete",
+    contactPerson: "Elena Verbeek",
+    email: "elena.verbeek@example.com",
+    phone: "+32 444 221 987",
+    eventsCovered: 2,
+    totalRevenue: 600,
+    featured: false,
+    notes: "800m specialist, personal branding session",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "client-6",
+    name: "Jonas De Smet",
+    clientType: "athlete",
+    contactPerson: "Jonas De Smet",
+    email: "jonas.desmet@example.com",
+    phone: "+32 477 110 554",
+    eventsCovered: 1,
+    totalRevenue: 450,
+    featured: false,
+    notes: "Sprinter media kit",
     createdAt: new Date(),
     updatedAt: new Date(),
   },
@@ -915,6 +1127,10 @@ async function seedDatabase() {
       await db.collection("portfolio").deleteMany({});
       await db.collection("contentPages").deleteMany({});
       await db.collection("clients").deleteMany({});
+      await db.collection("sports").deleteMany({});
+      await db.collection("journal").deleteMany({});
+      await db.collection("aboutContent").deleteMany({});
+      await db.collection("homeSettings").deleteMany({});
       console.log("✅ Cleared existing data");
     } catch (error) {
       console.log("Note: Collections might not exist yet");
@@ -954,10 +1170,23 @@ async function seedDatabase() {
       .insertMany(servicesData);
     console.log(`✅ Inserted ${servicesResult.insertedCount} services`);
 
+    const sportsResult = await db.collection("sports").insertMany(sportsData);
+    console.log(`✅ Inserted ${sportsResult.insertedCount} sports`);
+
     const portfolioResult = await db
       .collection("portfolio")
       .insertMany(portfolioData);
     console.log(`✅ Inserted ${portfolioResult.insertedCount} portfolio items`);
+
+    const aboutResult = await db
+      .collection("aboutContent")
+      .insertOne(aboutContentData);
+    console.log(`✅ Inserted about content (${aboutResult.insertedId})`);
+
+    const journalResult = await db
+      .collection("journal")
+      .insertMany(journalData);
+    console.log(`✅ Inserted ${journalResult.insertedCount} journal posts`);
 
     const contentPagesResult = await db
       .collection("contentPages")
@@ -970,6 +1199,11 @@ async function seedDatabase() {
       .collection("clients")
       .insertMany(clientsData);
     console.log(`✅ Inserted ${clientsResult.insertedCount} clients`);
+
+    const homeSettingsResult = await db
+      .collection("homeSettings")
+      .insertOne(homeSettingsData);
+    console.log(`✅ Inserted home settings (${homeSettingsResult.insertedId})`);
 
     // Create indexes for better performance
     await db

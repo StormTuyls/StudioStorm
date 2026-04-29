@@ -147,29 +147,47 @@ export default function PhotosManager() {
     let successCount = 0;
     const errors: string[] = [];
 
-    for (const uploadedFile of selectedFiles) {
+    const CONCURRENCY = 3;
+
+    const uploadOne = async (uploadedFile: (typeof selectedFiles)[number]) => {
+      if (!uploadedFile.title.trim()) {
+        return {
+          ok: false as const,
+          message: `${uploadedFile.file.name}: Title is required`,
+        };
+      }
+
+      const formData = new FormData();
+      formData.append("image", uploadedFile.file);
+      formData.append("title", uploadedFile.title);
+      formData.append("description", uploadedFile.description);
+      formData.append("location", uploadedFile.location);
+
+      if (uploadedFile.albumId) {
+        formData.append("albumId", uploadedFile.albumId);
+      }
+
       try {
-        if (!uploadedFile.title.trim()) {
-          errors.push(`${uploadedFile.file.name}: Title is required`);
-          continue;
-        }
-
-        const formData = new FormData();
-        formData.append("image", uploadedFile.file);
-        formData.append("title", uploadedFile.title);
-        formData.append("description", uploadedFile.description);
-        formData.append("location", uploadedFile.location);
-
-        // Only append albumId if it's not empty
-        if (uploadedFile.albumId) {
-          formData.append("albumId", uploadedFile.albumId);
-        }
-
         await createPhoto(formData);
-        successCount++;
+        return { ok: true as const };
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : "Unknown error";
-        errors.push(`${uploadedFile.file.name}: ${errorMsg}`);
+        return {
+          ok: false as const,
+          message: `${uploadedFile.file.name}: ${errorMsg}`,
+        };
+      }
+    };
+
+    for (let i = 0; i < selectedFiles.length; i += CONCURRENCY) {
+      const batch = selectedFiles.slice(i, i + CONCURRENCY);
+      const results = await Promise.all(batch.map(uploadOne));
+      for (const r of results) {
+        if (r.ok) {
+          successCount++;
+        } else {
+          errors.push(r.message);
+        }
       }
     }
 

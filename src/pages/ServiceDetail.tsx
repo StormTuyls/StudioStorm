@@ -1,56 +1,35 @@
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { getServices } from "../api";
+import type { Service } from "../types";
 
-const serviceContent: Record<
-  string,
-  {
-    title: string;
-    includes: string[];
-    delivery: string;
-    usage: string;
-    investment: string;
-  }
-> = {
-  "private-athlete": {
-    title: "Private Athlete",
-    includes: [
-      "Pre-shoot planning call",
-      "1.5 hour focused session",
-      "20 curated high-res images",
-      "Custom color grading",
-    ],
-    delivery: "5 business days",
-    usage: "Personal branding + sponsor kits",
-    investment: "Starting at 600 EUR",
-  },
-  "team-media-day": {
-    title: "Team Media Day",
-    includes: [
-      "On-location studio setup",
-      "Individual athlete portraits",
-      "Team and group visuals",
-      "Social-ready cutdowns",
-    ],
-    delivery: "7 business days",
-    usage: "Club media + sponsor assets",
-    investment: "Starting at 1,800 EUR",
-  },
-  "competition-coverage": {
-    title: "Competition Coverage",
-    includes: [
-      "Full-event coverage",
-      "Highlight edit + live selects",
-      "Delivery by event + discipline",
-      "Optional on-site upload",
-    ],
-    delivery: "48-72 hours",
-    usage: "Event marketing + press",
-    investment: "Starting at 2,400 EUR",
-  },
-};
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 
 export default function ServiceDetail() {
   const { service } = useParams();
-  const content = service ? serviceContent[service] : null;
+  const [services, setServices] = useState<Service[]>([]);
+
+  useEffect(() => {
+    const loadServices = async () => {
+      try {
+        const data = await getServices();
+        setServices(data);
+      } catch {
+        setServices([]);
+      }
+    };
+
+    void loadServices();
+  }, []);
+
+  const content = useMemo(() => {
+    if (!service) return null;
+    return services.find((item) => slugify(item.name) === service) || null;
+  }, [service, services]);
 
   if (!content) {
     return (
@@ -66,6 +45,17 @@ export default function ServiceDetail() {
     );
   }
 
+  const includes = content.whatsIncluded?.length
+    ? content.whatsIncluded
+    : ["Custom consultation", "Curated selection", "Professional edits"];
+  const deliverables = content.deliverables?.length
+    ? content.deliverables
+    : ["Web + social delivery", "High-res download", "Usage guidance"];
+  const investment =
+    content.startingPrice && content.startingPrice > 0
+      ? `Starting at ${content.startingPrice} EUR`
+      : "Contact for pricing";
+
   return (
     <div className="bg-[#0b0b0c] text-white">
       <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-20">
@@ -76,7 +66,7 @@ export default function ServiceDetail() {
           {"<- Services"}
         </Link>
         <h1 className="font-display text-4xl sm:text-5xl mt-6">
-          {content.title}
+          {content.name}
         </h1>
         <div className="mt-10 grid gap-6 md:grid-cols-2">
           <div className="rounded-3xl border border-white/10 bg-black/40 p-8">
@@ -84,7 +74,15 @@ export default function ServiceDetail() {
               What Is Included
             </h2>
             <ul className="mt-6 space-y-3 text-white/70 list-disc list-inside">
-              {content.includes.map((item) => (
+              {includes.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+            <h3 className="text-xs uppercase tracking-[0.3em] text-white/50 mt-8">
+              Deliverables
+            </h3>
+            <ul className="mt-4 space-y-2 text-white/70 list-disc list-inside">
+              {deliverables.map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
@@ -92,30 +90,32 @@ export default function ServiceDetail() {
           <div className="rounded-3xl border border-white/10 bg-black/40 p-8 space-y-6">
             <div>
               <h2 className="text-xs uppercase tracking-[0.3em] text-white/50">
-                Delivery Time
+                Description
               </h2>
-              <p className="mt-2 text-white/70">{content.delivery}</p>
+              <p className="mt-2 text-white/70">{content.description}</p>
             </div>
             <div>
               <h2 className="text-xs uppercase tracking-[0.3em] text-white/50">
-                Usage Rights
+                Sport Focus
               </h2>
-              <p className="mt-2 text-white/70">{content.usage}</p>
+              <p className="mt-2 text-white/70">
+                {content.sport ? content.sport : "All sports"}
+              </p>
             </div>
             <div>
               <h2 className="text-xs uppercase tracking-[0.3em] text-white/50">
                 Starting Investment
               </h2>
-              <p className="mt-2 text-white/70">{content.investment}</p>
+              <p className="mt-2 text-white/70">{investment}</p>
             </div>
           </div>
         </div>
         <div className="mt-12">
           <Link
-            to="/contact"
+            to={content.ctaUrl || "/contact"}
             className="bg-[#f0c987] text-black px-6 py-3 text-xs uppercase tracking-[0.3em] hover:bg-[#d8b77a] transition"
           >
-            Request Availability
+            {content.ctaLabel || "Request Availability"}
           </Link>
         </div>
       </section>

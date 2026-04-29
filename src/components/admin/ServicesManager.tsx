@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  createService,
+  deleteService,
+  getServices,
+  updateService,
+} from "../../api";
 import type { Service } from "../../types";
-
-// TODO: Wire to actual API endpoints
 export default function ServicesManager() {
-  const [services] = useState<Service[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [services, setServices] = useState<Service[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -19,11 +23,38 @@ export default function ServicesManager() {
     isActive: true,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const loadServices = async () => {
+      try {
+        const data = await getServices();
+        setServices(data);
+      } catch {
+        setServices([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void loadServices();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Call API to create/update service
-    setIsCreating(false);
-    resetForm();
+    try {
+      if (editingId) {
+        const updated = await updateService(editingId, formData);
+        setServices((prev) =>
+          prev.map((service) => (service.id === editingId ? updated : service)),
+        );
+      } else {
+        const created = await createService(formData);
+        setServices((prev) => [...prev, created]);
+      }
+      setIsCreating(false);
+      resetForm();
+    } catch {
+      alert("Failed to save service");
+    }
   };
 
   const resetForm = () => {
@@ -150,7 +181,11 @@ export default function ServicesManager() {
       )}
 
       <div className="space-y-2">
-        {services.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">Loading services...</p>
+          </div>
+        ) : services.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500">
               No services yet. Create one to get started.
@@ -173,10 +208,41 @@ export default function ServicesManager() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <button className="text-sm px-3 py-1 border rounded hover:bg-gray-50">
+                <button
+                  onClick={() => {
+                    setFormData({
+                      name: service.name,
+                      description: service.description,
+                      sport: service.sport || "athletics",
+                      whatsIncluded: service.whatsIncluded || [""],
+                      startingPrice: service.startingPrice || 0,
+                      deliverables: service.deliverables || [""],
+                      ctaLabel: service.ctaLabel || "Get Started",
+                      ctaUrl: service.ctaUrl || "",
+                      isActive: service.isActive,
+                    });
+                    setEditingId(service.id || null);
+                    setIsCreating(true);
+                  }}
+                  className="text-sm px-3 py-1 border rounded hover:bg-gray-50"
+                >
                   Edit
                 </button>
-                <button className="text-sm px-3 py-1 border border-red-200 text-red-700 rounded hover:bg-red-50">
+                <button
+                  onClick={async () => {
+                    if (!service.id) return;
+                    if (!confirm("Delete this service?")) return;
+                    try {
+                      await deleteService(service.id);
+                      setServices((prev) =>
+                        prev.filter((item) => item.id !== service.id),
+                      );
+                    } catch {
+                      alert("Failed to delete service");
+                    }
+                  }}
+                  className="text-sm px-3 py-1 border border-red-200 text-red-700 rounded hover:bg-red-50"
+                >
                   Delete
                 </button>
               </div>

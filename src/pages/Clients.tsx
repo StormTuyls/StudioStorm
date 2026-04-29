@@ -1,4 +1,8 @@
-const stats = [
+import { useEffect, useMemo, useState } from "react";
+import { getClients } from "../api";
+import type { Client } from "../types";
+
+const fallbackStats = [
   { label: "Events covered", value: "120+" },
   { label: "Athletes photographed", value: "1,800+" },
   { label: "Average delivery", value: "72 hrs" },
@@ -17,16 +21,7 @@ const testimonials = [
   },
 ];
 
-const clients = [
-  "Atletieknieuws",
-  "Agones Media",
-  "Runnerslab Athletics Team",
-  "VAL",
-  "Regional Clubs",
-  "Elite Athletes",
-];
-
-const events = [
+const fallbackEvents = [
   "BK Veldlopen",
   "National Track Finals",
   "Club Championships",
@@ -34,6 +29,76 @@ const events = [
 ];
 
 export default function Clients() {
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  useEffect(() => {
+    const loadClients = async () => {
+      try {
+        const data = await getClients();
+        setClients(data);
+        setLoadFailed(false);
+      } catch {
+        setClients([]);
+        setLoadFailed(true);
+      }
+    };
+
+    void loadClients();
+  }, []);
+
+  const stats = useMemo(() => {
+    if (loadFailed) return fallbackStats;
+
+    const eventsCovered = clients.reduce(
+      (sum, client) => sum + (client.eventsCovered || 0),
+      0,
+    );
+    const totalRevenue = clients.reduce(
+      (sum, client) => sum + (client.totalRevenue || 0),
+      0,
+    );
+
+    return [
+      { label: "Clients", value: clients.length.toString() },
+      { label: "Events covered", value: eventsCovered.toString() },
+      {
+        label: "Revenue tracked",
+        value: totalRevenue > 0 ? `${totalRevenue}+` : "-",
+      },
+    ];
+  }, [clients]);
+
+  const clientGroups = useMemo(() => {
+    if (loadFailed) {
+      return {
+        organizations: [
+          "Atletieknieuws",
+          "Agones Media",
+          "Runnerslab Athletics Team",
+          "VAL",
+          "Regional Clubs",
+        ],
+        athletes: ["Elite Athletes"],
+      };
+    }
+
+    const organizations = clients
+      .filter((client) => client.clientType !== "athlete")
+      .map((client) => client.name);
+    const athletes = clients
+      .filter((client) => client.clientType === "athlete")
+      .map((client) => client.name);
+
+    return { organizations, athletes };
+  }, [clients, loadFailed]);
+
+  const events = loadFailed
+    ? []
+    : clients
+        .map((client) => client.notes)
+        .filter((note): note is string => Boolean(note));
+
   return (
     <div className="bg-[#0b0b0c] text-white">
       <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-20">
@@ -66,15 +131,47 @@ export default function Clients() {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-20">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs uppercase tracking-[0.2em] text-white/70">
-          {clients.map((client) => (
-            <div
-              key={client}
-              className="rounded-full border border-white/15 px-4 py-3 text-center"
-            >
-              {client}
+        <div className="space-y-10">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-white/50 mb-4">
+              Organizations
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs uppercase tracking-[0.2em] text-white/70">
+              {clientGroups.organizations.map((client) => (
+                <div
+                  key={client}
+                  className="rounded-full border border-white/15 px-4 py-3 text-center"
+                >
+                  {client}
+                </div>
+              ))}
+              {clientGroups.organizations.length === 0 && (
+                <div className="rounded-full border border-white/15 px-4 py-3 text-center">
+                  No organizations listed yet.
+                </div>
+              )}
             </div>
-          ))}
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-white/50 mb-4">
+              Athletes
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs uppercase tracking-[0.2em] text-white/70">
+              {clientGroups.athletes.map((client) => (
+                <div
+                  key={client}
+                  className="rounded-full border border-white/15 px-4 py-3 text-center"
+                >
+                  {client}
+                </div>
+              ))}
+              {clientGroups.athletes.length === 0 && (
+                <div className="rounded-full border border-white/15 px-4 py-3 text-center">
+                  No athletes listed yet.
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -100,7 +197,7 @@ export default function Clients() {
             Major Events
           </p>
           <ul className="mt-6 grid gap-3 text-white/70 list-disc list-inside">
-            {events.map((event) => (
+            {(events.length > 0 ? events : fallbackEvents).map((event) => (
               <li key={event}>{event}</li>
             ))}
           </ul>

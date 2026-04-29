@@ -1,14 +1,14 @@
 import { useState } from "react";
 
 export type AdminTab =
-  | "dashboard"
-  | "events"
-  | "portfolio"
+  | "work"
+  | "sports"
   | "services"
   | "clients"
-  | "content"
-  | "sales"
-  | "settings";
+  | "journal"
+  | "about"
+  | "contact"
+  | "galleries";
 
 interface AdminSidebarProps {
   activeTab: AdminTab;
@@ -26,14 +26,14 @@ export default function AdminSidebar({
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const menuItems: Array<{ id: AdminTab; label: string; icon: string }> = [
-    { id: "dashboard", label: "Dashboard", icon: "📊" },
-    { id: "events", label: "Events", icon: "📅" },
-    { id: "portfolio", label: "Portfolio", icon: "🖼️" },
+    { id: "work", label: "Work", icon: "🖼️" },
+    { id: "sports", label: "Sports", icon: "🏅" },
     { id: "services", label: "Services", icon: "🎯" },
     { id: "clients", label: "Clients", icon: "👥" },
-    { id: "content", label: "Content", icon: "✍️" },
-    { id: "sales", label: "Sales", icon: "💰" },
-    { id: "settings", label: "Settings", icon: "⚙️" },
+    { id: "journal", label: "Journal", icon: "📓" },
+    { id: "about", label: "About", icon: "ℹ️" },
+    { id: "contact", label: "Contact", icon: "✉️" },
+    { id: "galleries", label: "Personal Galleries", icon: "🗂️" },
   ];
 
   return (

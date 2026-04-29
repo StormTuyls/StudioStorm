@@ -87,6 +87,17 @@ export default function ClientsManager() {
     );
   }
 
+  const totalClients = clients.length;
+  const featuredClients = clients.filter((client) => client.featured).length;
+  const totalRevenue = clients.reduce(
+    (sum, client) => sum + (client.totalRevenue || 0),
+    0,
+  );
+  const totalEventsCovered = clients.reduce(
+    (sum, client) => sum + (client.eventsCovered || 0),
+    0,
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -106,6 +117,41 @@ export default function ClientsManager() {
           {error}
         </div>
       )}
+
+      <div className="grid gap-4 md:grid-cols-4">
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <p className="text-xs uppercase tracking-[0.3em] text-gray-400">
+            Total Clients
+          </p>
+          <p className="text-2xl font-light text-gray-900 mt-2">
+            {totalClients}
+          </p>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <p className="text-xs uppercase tracking-[0.3em] text-gray-400">
+            Featured
+          </p>
+          <p className="text-2xl font-light text-gray-900 mt-2">
+            {featuredClients}
+          </p>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <p className="text-xs uppercase tracking-[0.3em] text-gray-400">
+            Events Covered
+          </p>
+          <p className="text-2xl font-light text-gray-900 mt-2">
+            {totalEventsCovered}
+          </p>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <p className="text-xs uppercase tracking-[0.3em] text-gray-400">
+            Total Revenue
+          </p>
+          <p className="text-2xl font-light text-gray-900 mt-2">
+            ${totalRevenue.toFixed(0)}
+          </p>
+        </div>
+      </div>
 
       {isCreating && (
         <form
